@@ -1,9 +1,9 @@
 // ServerManager.hpp
 #pragma once
 #include <vector>
+#include <poll.h>
 #include "ServerSocket.hpp"
-#include "ConfigParser.hpp"
-#include "ClientConnection.hpp"
+#include "ClientConection.hpp"
 
 class ServerManager {
 private:
@@ -15,7 +15,7 @@ public:
     ServerManager(const std::string &configPath);
     void run(); // Bucle principal del servidor
 private:
-    void setupServers(const std::vector<ServerConfig> &configs);
     void acceptNewConnection(int socketFd);
     void handleClientEvent(int clientIndex);
+    void removeClient(int clientIndex);
 };
