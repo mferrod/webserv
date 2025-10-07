@@ -30,7 +30,7 @@ class ClientConnection {
 		std::string		_buffer;
 		bool			_complete;
 		HttpRequest		_request;
-		HttpResponse	_response;
+		//HttpResponse	_response;
 
 	public:
 		ClientConnection(int fd);

@@ -41,6 +41,7 @@ void ServerManager::run() {
             if (poll_fds[i].revents & POLLIN) {
                 if (i < servers.size()) {
                     acceptNewConnection(poll_fds[i].fd);
+                    handleClientEvent(i - servers.size()); // For debugging
                 } else {
                     handleClientEvent(i - servers.size());
                 }
@@ -68,7 +69,7 @@ void ServerManager::acceptNewConnection(int serverFd) {
 }
 
 void ServerManager::handleClientEvent(int clientIndex) {
-    if (clientIndex < 0 || (size_t)clientIndex >= clients.size()) return;
+    //if (clientIndex < 0 || (size_t)clientIndex >= clients.size()) return; // Commented for debugging
 
     ClientConnection &client = clients[clientIndex];
     if (!client.readData()) {
