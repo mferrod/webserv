@@ -1,6 +1,10 @@
 #pragma once
 #include <string>
 #include <unistd.h>
+#include <map>
+#include <iostream>
+#include <sys/socket.h>
+
 
 struct HttpRequest
 {

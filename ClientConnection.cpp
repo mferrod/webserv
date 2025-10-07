@@ -1,7 +1,4 @@
-#include "ClientConection.hpp"
-#include <iostream>
-#include <sys/socket.h>
-#include <unistd.h>
+#include "ClientConnection.hpp"
 
 #define BUFFER_SIZE 8192
 
