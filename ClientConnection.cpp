@@ -2,27 +2,34 @@
 
 #define BUFFER_SIZE 8192
 
-ClientConnection::ClientConnection(int fd) : _fd(fd), _complete(false) {}
+ClientConnection::ClientConnection(int fd) : _fd(fd), _complete(false) {
+	_request.method = "";
+	_request.path = "";
+	_request.version = "";
+	_request.headers.clear();
+	_request.body = "";
+}
 
 ClientConnection::~ClientConnection() {
 	if (_fd >= 0) close(_fd);
 }
 
 bool ClientConnection::readData() {
-	char buf[BUFFER_SIZE];
+	/* char buf[BUFFER_SIZE];
 	ssize_t bytesRead = recv(_fd, buf, BUFFER_SIZE, 0);
 	if (bytesRead <= 0) return false;
 
-	_buffer.append(buf, bytesRead);
+	_buffer.append(buf, bytesRead); */
 	// For debugging
-	/* _buffer = "GET /hola.html HTTP/1.1\r\n"
+	_buffer = "GET /hola.html HTTP/1.1\r\n"
 	"Host: localhost\r\n"
 	"User-Agent: test-client\r\n"
 	"\r\n"
-	"<html><body>Hello, world!</body></html>"; */
+	"<html><body>Hello, world!</body></html>";
 	if (_buffer.find("\r\n\r\n") != std::string::npos) {
 		_complete = true;
 		_request = parseRequest(_buffer);
+		printRequest(); // For debugging
 	}
 	return true;
 }
