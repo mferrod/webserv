@@ -69,8 +69,7 @@ void ServerManager::acceptNewConnection(int serverFd) {
 }
 
 void ServerManager::handleClientEvent(int clientIndex) {
-    //if (clientIndex < 0 || (size_t)clientIndex >= clients.size()) return; // Commented for debugging
-
+    if (clientIndex < 0 || (size_t)clientIndex >= clients.size()) return; 
     ClientConnection &client = clients[clientIndex];
     if (!client.readData()) {
         removeClient(clientIndex);
