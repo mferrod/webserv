@@ -3,7 +3,7 @@
 #include <vector>
 #include <poll.h>
 #include "ServerSocket.hpp"
-#include "ClientConection.hpp"
+#include "ClientConnection.hpp"
 
 class ServerManager {
 private:
