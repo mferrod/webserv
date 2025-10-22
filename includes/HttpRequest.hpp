@@ -1,0 +1,34 @@
+#pragma once
+#include <string>
+#include <map>
+#include "Request.hpp"
+
+class HttpRequest;
+{
+	public:
+		HttpRequest();
+		~HttpRequest();
+
+	private:
+		std::string 						_method;
+		std::string 						_path;
+		std::string 						_version;
+		std::map<std::string, std::string> 	_headers;
+		std::string 						_body;
+		int 								_status_code;
+		bool 								_valid_request;
+
+		void parseRequest(const std::string &rawRequest);
+
+		void parseRequestLine(const std::string &line);
+		void parseHeaders(const std::string &header_lines);
+		void parseBody(const std::string &body);
+
+		bool isValidMethod(const std::string &method) const;
+		bool isImplementedMethod(const std::string &method) const;
+
+		bool isValidRequest() const;
+};
+
+
+
