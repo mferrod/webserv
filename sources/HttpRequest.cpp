@@ -43,6 +43,74 @@ bool HttpRequest::isImplementedMethod(const std::string &method) const
 	return false;
 }
 
+bool HttpRequest::isAllowedCharPath(u_int8_t c) const
+{
+	if ((ch >= '#' && ch <= ';') || (ch >= '?' && ch <= '[') || (ch >= 'a' && ch <= 'z') ||
+		ch == '!' || ch == '=' || ch == ']' || ch == '_' || ch == '~')
+		return (true);
+	return (false);
+}
+
+bool HttpRequest::isValidPath(const std::string &path) const
+{
+	if (path.empty())
+		return false;
+	
+	if (path[0] != '/')
+		return false;
+	
+	if (path.length() > 8192)
+		return false;
+	
+	for (size_t i = 1; i < path.length(); i++)
+	{
+		u_int8_t c = path[i];
+		
+		if (!isAllowedCharPath(c))
+		{
+			_status_code = 400;
+			return false;
+		}
+	}
+	
+	if (path.find("../") != std::string::npos || 
+		path.find("/..") != std::string::npos ||
+		path == ".." || 
+		path.find("/../") != std::string::npos)
+		return false;
+	
+	if (path.find("//") != std::string::npos)
+		return false;
+	
+	return true;
+}
+
+// Decodes percent-encoded characters in the path
+std::string HttpRequest::normalizePath(const std::string &path) const
+{
+	std::string normalized = path;
+	
+	size_t pos = 0;
+	while ((pos = normalized.find('%', pos)) != std::string::npos)
+	{
+		if (pos + 2 < normalized.length())
+		{
+			std::string hex = normalized.substr(pos + 1, 2);
+			u_int8_t c = static_cast<u_int8_t>(std::stoi(hex, nullptr, 16));
+
+			if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || 
+				(c >= '0' && c <= '9') || c == '-' || c == '_' || 
+				c == '.' || c == '~' || c == '/')
+			{
+				normalized.replace(pos, 3, 1, c);
+			}
+		}
+		pos++;
+	}
+	
+	return normalized;
+}
+
 void HttpRequest::parseRequestLine(const std::string &line)
 {
 	size_t method_end = line.find(' ');
@@ -68,14 +136,38 @@ void HttpRequest::parseRequestLine(const std::string &line)
 		return;
 	}
 	
-	size_t path_end = line.find(' ', methodEnd + 1);
+	size_t path_end = line.find(' ', method_end + 1);
 	if (path_end == std::string::npos)
 	{
 		_valid_request = false;
 		_status_code = 400;
 		return;
 	}
-	_path = line.substr(methodEnd + 1, path_end - methodEnd - 1);
+
+	std::string full_path = line.substr(method_end + 1, path_end - method_end - 1);
+
+	full_path = normalizePath(full_path);
+
+	if (!isValidPath(full_path))
+	{
+		_valid_request = false;
+		_status_code = 400;
+		return;
+	}
+
+	if (full_path.find('?') != std::string::npos)
+	{
+		_path = full_path.substr(0, full_path.find('?'));
+		_path_query = full_path.substr(full_path.find('?') + 1);
+	}
+	else if (full_path.find('#') != std::string::npos)
+	{
+		_path = full_path.substr(0, full_path.find('#'));
+		_path_fragment = full_path.substr(full_path.find('#') + 1);
+	}
+	else
+		_path = full_path;
+	
 	if (path_end + 1 >= line.size())
 	{
 		_valid_request = false;
@@ -95,6 +187,15 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 			break;
 
 		std::string header_line = header_lines.substr(pos, line_end - pos);
+
+		if (headerLine.find(" :") != std::string::npos ||
+			headerLine.find("\t:") != std::string::npos)
+		{
+			_valid_request = false;
+			_status_code = 400;
+			return;
+		}
+
 		size_t colon_pos = header_line.find(':');
 		if (colon_pos != std::string::npos)
 		{
@@ -117,6 +218,13 @@ void HttpRequest::parseBody(const std::string &body)
 	{
 		try 
 		{
+			if (std::count(_headers.begin(), _headers.end(), "Content-Length") > 1)
+			{
+				_valid_request = false;
+				_status_code = 400;
+				return;
+			}
+
 			size_t content_length = static_cast<size_t>(std::stoi(_headers["Content-Length"]));
 			
 			if (body.size() > content_length)

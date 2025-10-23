@@ -5,7 +5,8 @@ CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g
 SRCS = main.cpp \
        ServerManager.cpp \
        ServerSocket.cpp \
-       ClientConnection.cpp
+       ClientConnection.cpp \
+	   HTTPRequest.cpp \
 
 OBJS = $(SRCS:.cpp=.o)
 

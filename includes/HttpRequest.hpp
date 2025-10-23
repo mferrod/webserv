@@ -12,6 +12,8 @@ class HttpRequest;
 	private:
 		std::string 						_method;
 		std::string 						_path;
+		std::string 						_path_query;
+		std::string 						_path_fragment;
 		std::string 						_version;
 		std::map<std::string, std::string> 	_headers;
 		std::string 						_body;
@@ -26,7 +28,10 @@ class HttpRequest;
 
 		bool isValidMethod(const std::string &method) const;
 		bool isImplementedMethod(const std::string &method) const;
-
+		bool isValidPath(const std::string &path) const;
+		std::string normalizePath(const std::string &path) const;
+		bool isAllowedCharPath(u_int8_t c) const;
+		
 		bool isValidRequest() const;
 };
 
