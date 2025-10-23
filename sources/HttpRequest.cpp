@@ -54,13 +54,22 @@ bool HttpRequest::isAllowedCharPath(u_int8_t c) const
 bool HttpRequest::isValidPath(const std::string &path) const
 {
 	if (path.empty())
+	{
+		_status_code = 400;
 		return false;
+	}		
 	
 	if (path[0] != '/')
+	{
+		_status_code = 400;
 		return false;
+	}
 	
 	if (path.length() > 8192)
+	{
+		_status_code = 414;
 		return false;
+	}
 	
 	for (size_t i = 1; i < path.length(); i++)
 	{
@@ -77,11 +86,17 @@ bool HttpRequest::isValidPath(const std::string &path) const
 		path.find("/..") != std::string::npos ||
 		path == ".." || 
 		path.find("/../") != std::string::npos)
+	{
+		_status_code = 400;
 		return false;
+	}
 	
 	if (path.find("//") != std::string::npos)
+	{
+		_status_code = 400;
 		return false;
-	
+	}
+
 	return true;
 }
 
@@ -115,7 +130,7 @@ bool HttpRequest::isValidVersion(const std::string &version)
 {
 	try
 	{
-		if (version.size() < 7 || version.substr(0, 5) != "HTTP/")
+		if (version.size() < 8 || version.substr(0, 5) != "HTTP/")
 		{
 			_valid_request = false;
 			_status_code = 400;
@@ -123,7 +138,16 @@ bool HttpRequest::isValidVersion(const std::string &version)
 		}
 
 		std::string num = version.substr(5);
+
+		if (num.size() < 3 || num.size() > 3 || num[1] != '.' || !isdigit(num[0]) || !isdigit(num[2]))
+		{
+			_valid_request = false;
+			_status_code = 400;
+			return false;
+		}
+
 		size_t dot = num.find('.');
+
 		if (dot == std::string::npos)
 		{
 			_valid_request = false;
@@ -134,7 +158,9 @@ bool HttpRequest::isValidVersion(const std::string &version)
 		int major = std::stoi(num.substr(0, dot));
 		int minor = std::stoi(num.substr(dot + 1));
 
-		if (major == 1 && (minor == 0 || minor == 1))
+		if (major == 0 && minor == 9)
+			return true;
+		else if (major == 1 && (minor == 0 || minor == 1))
 			return true;
 		else
 		{
@@ -191,7 +217,6 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	if (!isValidPath(full_path))
 	{
 		_valid_request = false;
-		_status_code = 400;
 		return;
 	}
 
