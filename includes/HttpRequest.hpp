@@ -1,9 +1,10 @@
 #pragma once
 #include <string>
 #include <map>
+#include <cstdint>
 #include "Request.hpp"
 
-class HttpRequest;
+class HttpRequest
 {
 	public:
 		HttpRequest();
@@ -31,6 +32,7 @@ class HttpRequest;
 		bool isValidPath(const std::string &path) const;
 		std::string normalizePath(const std::string &path) const;
 		bool isAllowedCharPath(u_int8_t c) const;
+		bool isValidVersion(const std::string &version) const;
 		
 		bool isValidRequest() const;
 };

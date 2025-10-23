@@ -111,6 +111,46 @@ std::string HttpRequest::normalizePath(const std::string &path) const
 	return normalized;
 }
 
+bool HttpRequest::isValidVersion(const std::string &version)
+{
+	try
+	{
+		if (version.size() < 7 || version.substr(0, 5) != "HTTP/")
+		{
+			_valid_request = false;
+			_status_code = 400;
+			return false;
+		}
+
+		std::string num = version.substr(5);
+		size_t dot = num.find('.');
+		if (dot == std::string::npos)
+		{
+			_valid_request = false;
+			_status_code = 400;
+			return false;
+		}
+
+		int major = std::stoi(num.substr(0, dot));
+		int minor = std::stoi(num.substr(dot + 1));
+
+		if (major == 1 && (minor == 0 || minor == 1))
+			return true;
+		else
+		{
+			_valid_request = false;
+			_status_code = 505; // HTTP Version Not Supported
+			return false;
+		}
+	}
+	catch (const std::exception &e)
+	{
+		_valid_request = false;
+		_status_code = 400;
+		return false;
+	}
+}
+
 void HttpRequest::parseRequestLine(const std::string &line)
 {
 	size_t method_end = line.find(' ');
