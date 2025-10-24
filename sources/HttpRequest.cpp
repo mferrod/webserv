@@ -290,13 +290,16 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 			{
 				header_value.erase(0, 1);
 			}
+
 			if (!isValidHeader(header_name, header_value))
 			{
 				_valid_request = false;
 				_status_code = 400;
 				return;
 			}
-			_headers[header_name] = header_value;
+			toLowerCase(header_name);
+			std::string trimmed_value = trim(header_value);
+			_headers[header_name] = trimmed_value;
 		}
 		pos = line_end + 2;
 	}

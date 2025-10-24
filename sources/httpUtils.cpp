@@ -33,3 +33,11 @@ bool isToken(const std::string &str)
 	}
 	return true;
 }
+
+void toLowerCase(std::string &str)
+{
+	for (size_t i = 0; i < str.size(); i++)
+	{
+		str[i] = tolower(str[i]);
+	}
+}

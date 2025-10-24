@@ -2,7 +2,7 @@
 #include <string>
 #include <map>
 #include <cstdint>
-#include "Request.hpp"
+#include "httpUtils.hpp"
 
 class HttpRequest
 {
@@ -35,6 +35,7 @@ class HttpRequest
 		bool isValidVersion(const std::string &version) const;
 		
 		bool isValidHeaderValue(const std::string &value) const;
+		bool isValidHeader(const std::string &name, const std::string &value) const;
 		
 		bool isValidRequest() const;
 };
