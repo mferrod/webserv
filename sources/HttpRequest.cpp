@@ -177,6 +177,26 @@ bool HttpRequest::isValidVersion(const std::string &version)
 	}
 }
 
+bool HttpRequest::isValidHeaderValue(const std::string &value) const
+{
+	for (size_t i = 0; i < value.size(); i++)
+	{
+		char c = value[i];
+		if (c < 32 && c != 9)
+			return false;
+	}
+	return true;
+}
+
+bool HttpRequest::isValidHeader(const std::string &name, const std::string &value) const
+{
+	if (!isToken(name))
+		return false;
+	if (!isValidHeaderValue(value))
+		return false;
+	return true;
+}
+
 void HttpRequest::parseRequestLine(const std::string &line)
 {
 	size_t method_end = line.find(' ');
@@ -225,7 +245,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 		_path = full_path.substr(0, full_path.find('?'));
 		_path_query = full_path.substr(full_path.find('?') + 1);
 	}
-	else if (full_path.find('#') != std::string::npos)
+	else if (full_path.find('#') != std::string::npos) // Handler fragments, ignore it or throw an error?
 	{
 		_path = full_path.substr(0, full_path.find('#'));
 		_path_fragment = full_path.substr(full_path.find('#') + 1);
@@ -269,6 +289,12 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 			while (!header_value.empty() && (header_value[0] == ' ' || header_value[0] == '\t'))
 			{
 				header_value.erase(0, 1);
+			}
+			if (!isValidHeader(header_name, header_value))
+			{
+				_valid_request = false;
+				_status_code = 400;
+				return;
 			}
 			_headers[header_name] = header_value;
 		}

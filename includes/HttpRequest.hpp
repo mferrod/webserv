@@ -34,6 +34,8 @@ class HttpRequest
 		bool isAllowedCharPath(u_int8_t c) const;
 		bool isValidVersion(const std::string &version) const;
 		
+		bool isValidHeaderValue(const std::string &value) const;
+		
 		bool isValidRequest() const;
 };
 
