@@ -286,10 +286,6 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 		{
 			std::string header_name = header_line.substr(0, colon_pos);
 			std::string header_value = header_line.substr(colon_pos + 1);
-			while (!header_value.empty() && (header_value[0] == ' ' || header_value[0] == '\t'))
-			{
-				header_value.erase(0, 1);
-			}
 
 			if (!isValidHeader(header_name, header_value))
 			{
