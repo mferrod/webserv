@@ -5,7 +5,7 @@
 int main(void)
 {
     HttpRequest request = HttpRequest();
-    std::string rawRequest = "TRACE /index.html HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+    std::string rawRequest = "POST /index.html HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
     request.parseRequest(rawRequest);  
     request.printRequest();
     return 0;

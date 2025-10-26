@@ -321,7 +321,7 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 			toLowerCase(header_name);
 			std::string trimmed_value = trim(header_value);
 			_headers[header_name] = trimmed_value;
-			std::cout << "Header parsed: " << header_name << " => " << trimmed_value << std::endl; // For debugging
+			//std::cout << "Header parsed: " << header_name << " => " << trimmed_value << std::endl; // For debugging
 		}
 		pos = line_end + 2;
 	}
@@ -386,6 +386,8 @@ void HttpRequest::parseRequest(const std::string &rawRequest)
 	parseRequestLine(requestLine);
 	if (_valid_request == false)
 		return;
+	if (!isValidVersion(_version))
+		return;
 	size_t header_end = rawRequest.find("\r\n\r\n", pos);
 
 	if (header_end == std::string::npos)
@@ -402,7 +404,7 @@ void HttpRequest::parseRequest(const std::string &rawRequest)
 	
 	parseHeaders(header_lines);
 
-	if (pos < rawRequest.size() && _valid_request) // Check headers validity before parsing body
+	if (pos < rawRequest.size() && _valid_request) // Check headers before parsing body
 	{
 		std::string body = rawRequest.substr(pos);
 		parseBody(body);
