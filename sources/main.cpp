@@ -1,7 +1,17 @@
-#include "ServerManager.hpp"
+#include "../includes/ServerManager.hpp"
 #include <iostream>
 
-int main(int argc, char **argv) {
+
+int main(void)
+{
+    HttpRequest request = HttpRequest();
+    std::string rawRequest = "POST /index.html HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+    request.parseRequest(rawRequest);  
+    request.printRequest();
+    return 0;
+}
+
+/* int main(int argc, char **argv) {
     if (argc != 2) {
         std::cerr << "Usage: ./webserv <config_file>" << std::endl;
         return 1;
@@ -16,4 +26,4 @@ int main(int argc, char **argv) {
     }
 
     return 0;
-}
+} */

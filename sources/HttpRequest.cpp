@@ -4,6 +4,8 @@ HttpRequest::HttpRequest()
 {
 	_method = "";
 	_path = "";
+	_path_query = "";
+	_path_fragment = "";
 	_version = "";
 	_headers.clear();
 	_body = "";
@@ -43,41 +45,45 @@ bool HttpRequest::isImplementedMethod(const std::string &method) const
 	return false;
 }
 
-bool HttpRequest::isAllowedCharPath(u_int8_t c) const
+bool HttpRequest::isAllowedCharPath(unsigned char c) const
 {
-	if ((ch >= '#' && ch <= ';') || (ch >= '?' && ch <= '[') || (ch >= 'a' && ch <= 'z') ||
-		ch == '!' || ch == '=' || ch == ']' || ch == '_' || ch == '~')
+	if ((c >= '#' && c <= ';') || (c >= '?' && c <= '[') || (c >= 'a' && c <= 'z') ||
+		c == '!' || c == '=' || c == ']' || c == '_' || c == '~')
 		return (true);
 	return (false);
 }
 
-bool HttpRequest::isValidPath(const std::string &path) const
+bool HttpRequest::isValidPath(const std::string &path)
 {
 	if (path.empty())
 	{
 		_status_code = 400;
+		std::cout << "Invalid request: empty path." << std::endl; // For debugging
 		return false;
 	}		
 	
 	if (path[0] != '/')
 	{
 		_status_code = 400;
+		std::cout << "Invalid request: path must start with '/'" << std::endl; // For debugging
 		return false;
 	}
 	
 	if (path.length() > 8192)
 	{
 		_status_code = 414;
+		std::cout << "Invalid request: path length exceeds 8192 characters." << std::endl; // For debugging
 		return false;
 	}
 	
 	for (size_t i = 1; i < path.length(); i++)
 	{
-		u_int8_t c = path[i];
+		unsigned char c = path[i];
 		
 		if (!isAllowedCharPath(c))
 		{
 			_status_code = 400;
+			std::cout << "Invalid request: disallowed character in path." << std::endl; // For debugging
 			return false;
 		}
 	}
@@ -88,12 +94,14 @@ bool HttpRequest::isValidPath(const std::string &path) const
 		path.find("/../") != std::string::npos)
 	{
 		_status_code = 400;
+		std::cout << "Invalid request: path traversal detected." << std::endl; // For debugging
 		return false;
 	}
 	
 	if (path.find("//") != std::string::npos)
 	{
 		_status_code = 400;
+		std::cout << "Invalid request: consecutive slashes detected." << std::endl; // For debugging
 		return false;
 	}
 
@@ -111,7 +119,7 @@ std::string HttpRequest::normalizePath(const std::string &path) const
 		if (pos + 2 < normalized.length())
 		{
 			std::string hex = normalized.substr(pos + 1, 2);
-			u_int8_t c = static_cast<u_int8_t>(std::stoi(hex, nullptr, 16));
+			unsigned char c = static_cast<unsigned char>(strtol(hex.c_str(), NULL, 16));
 
 			if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || 
 				(c >= '0' && c <= '9') || c == '-' || c == '_' || 
@@ -134,6 +142,7 @@ bool HttpRequest::isValidVersion(const std::string &version)
 		{
 			_valid_request = false;
 			_status_code = 400;
+			std::cout << "Invalid request: HTTP version must start with 'HTTP/'" << std::endl; // For debugging
 			return false;
 		}
 
@@ -143,6 +152,7 @@ bool HttpRequest::isValidVersion(const std::string &version)
 		{
 			_valid_request = false;
 			_status_code = 400;
+			std::cout << "Invalid request: HTTP version must be in the format 'HTTP/x.y'" << std::endl; // For debugging
 			return false;
 		}
 
@@ -152,11 +162,12 @@ bool HttpRequest::isValidVersion(const std::string &version)
 		{
 			_valid_request = false;
 			_status_code = 400;
+			std::cout << "Invalid request: HTTP version must be in the format 'HTTP/x.y'" << std::endl; // For debugging
 			return false;
 		}
 
-		int major = std::stoi(num.substr(0, dot));
-		int minor = std::stoi(num.substr(dot + 1));
+		int major = strtol(num.substr(0, dot).c_str(), NULL, 10);
+		int minor = strtol(num.substr(dot + 1).c_str(), NULL, 10);
 
 		if (major == 0 && minor == 9)
 			return true;
@@ -166,6 +177,7 @@ bool HttpRequest::isValidVersion(const std::string &version)
 		{
 			_valid_request = false;
 			_status_code = 505; // HTTP Version Not Supported
+			std::cout << "Invalid request: HTTP version not supported." << std::endl; // For debugging
 			return false;
 		}
 	}
@@ -173,6 +185,7 @@ bool HttpRequest::isValidVersion(const std::string &version)
 	{
 		_valid_request = false;
 		_status_code = 400;
+		std::cout << "Invalid request: exception parsing HTTP version: " << e.what() << std::endl; // For debugging
 		return false;
 	}
 }
@@ -190,6 +203,10 @@ bool HttpRequest::isValidHeaderValue(const std::string &value) const
 
 bool HttpRequest::isValidHeader(const std::string &name, const std::string &value) const
 {
+	if (name.empty() || value.empty())
+		return false;
+	if (_headers.find("content-length") != _headers.end() && caseInsensitiveCompare(name, "Content-Length"))
+		return false;
 	if (!isToken(name))
 		return false;
 	if (!isValidHeaderValue(value))
@@ -204,6 +221,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	{
 		_valid_request = false;
 		_status_code = 400;
+		std::cout << "Invalid request: no space found in request line." << std::endl; // For debugging
 		return;
 	}
 	_method = line.substr(0, method_end);
@@ -212,6 +230,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	{
 		_valid_request = false;
 		_status_code = 400;  // Invalid method
+		std::cout << "Invalid request: method not allowed." << std::endl; // For debugging
 		return;
 	}
 
@@ -219,6 +238,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	{
 		_valid_request = false;
 		_status_code = 501;  // Not implemented method
+		std::cout << "Invalid request: method not implemented." << std::endl; // For debugging
 		return;
 	}
 	
@@ -227,6 +247,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	{
 		_valid_request = false;
 		_status_code = 400;
+		std::cout << "Invalid request: no second space found in request line." << std::endl; // For debugging
 		return;
 	}
 
@@ -237,6 +258,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	if (!isValidPath(full_path))
 	{
 		_valid_request = false;
+		std::cout << "Invalid request: " << _status_code << std::endl; // For debugging
 		return;
 	}
 
@@ -257,6 +279,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	{
 		_valid_request = false;
 		_status_code = 400;
+		std::cout << "Invalid request: no HTTP version found in request line." << std::endl; // For debugging
 		return;
 	}
 	_version = line.substr(path_end + 1);
@@ -265,7 +288,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 void HttpRequest::parseHeaders(const std::string &header_lines)
 {
 	size_t pos = 0;
-	while (true)
+	while (_valid_request)
 	{
 		size_t line_end = header_lines.find("\r\n", pos);
 		if (line_end == std::string::npos || line_end == pos)
@@ -273,11 +296,12 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 
 		std::string header_line = header_lines.substr(pos, line_end - pos);
 
-		if (headerLine.find(" :") != std::string::npos ||
-			headerLine.find("\t:") != std::string::npos)
+		if (header_line.find(" :") != std::string::npos ||
+			header_line.find("\t:") != std::string::npos)
 		{
 			_valid_request = false;
 			_status_code = 400;
+			std::cout << "Invalid request: invalid header format." << std::endl; // For debugging
 			return;
 		}
 
@@ -291,11 +315,13 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 			{
 				_valid_request = false;
 				_status_code = 400;
+				std::cout << "Invalid request: invalid header name or value." << std::endl; // For debugging
 				return;
 			}
 			toLowerCase(header_name);
 			std::string trimmed_value = trim(header_value);
 			_headers[header_name] = trimmed_value;
+			//std::cout << "Header parsed: " << header_name << " => " << trimmed_value << std::endl; // For debugging
 		}
 		pos = line_end + 2;
 	}
@@ -308,34 +334,30 @@ void HttpRequest::parseBody(const std::string &body)
 	{
 		try 
 		{
-			if (std::count(_headers.begin(), _headers.end(), "Content-Length") > 1)
-			{
-				_valid_request = false;
-				_status_code = 400;
-				return;
-			}
-
-			size_t content_length = static_cast<size_t>(std::stoi(_headers["Content-Length"]));
+			size_t content_length = static_cast<size_t>(strtol(_headers["Content-Length"].c_str(), NULL, 10));
 			
 			if (body.size() > content_length)
 			{
 				_valid_request = false;
 				_status_code = 400;
+				std::cout << "Invalid request: body too large." << std::endl; // For debugging
 				return;
 			}
 			else if (body.size() < content_length)
 			{
 				_valid_request = false;
 				_status_code = 400;
+				std::cout << "Invalid request: body too small." << std::endl; // For debugging
 				return;
 			}
-			
-			_body = body;
+			// If no Content-Length and no Content-Encoding, body must be empty
+			//_body = body;
 		}
 		catch (const std::exception&)
 		{
 			_valid_request = false;
 			_status_code = 400;
+			std::cout << "Invalid request: exception parsing Content-Length." << std::endl; // For debugging
 			return;
 		}
 	}
@@ -351,30 +373,38 @@ void HttpRequest::parseRequest(const std::string &rawRequest)
 	size_t line_end = rawRequest.find("\r\n");
 
 	if (line_end == std::string::npos)
+	{
 		_valid_request = false;
 		_status_code = 400;
+		std::cout << "Invalid request: no CRLF found in request line." << std::endl; //For debugging
 		return;
+	}
 
 	std::string requestLine = rawRequest.substr(0, line_end);
 	pos = line_end + 2;
 
 	parseRequestLine(requestLine);
-	
+	if (_valid_request == false)
+		return;
+	if (!isValidVersion(_version))
+		return;
 	size_t header_end = rawRequest.find("\r\n\r\n", pos);
 
-	if (header_end == std::string::npos || _valid_request == false)
+	if (header_end == std::string::npos)
 	{
 		_valid_request = false;
 		_status_code = 400;
+		std::cout << "Invalid request: no CRLFCRLF found." << std::endl; //For debugging
 		return;
 	}
-
-	std::string header_lines = rawRequest.substr(pos, header_end - pos);
+	if (_valid_request == false)
+		return;
+	std::string header_lines = rawRequest.substr(pos, header_end - pos + 2);
 	pos = header_end + 4;
 	
 	parseHeaders(header_lines);
 
-	if (pos < rawRequest.size() && _valid_request == true)
+	if (pos < rawRequest.size() && _valid_request) // Check headers before parsing body
 	{
 		std::string body = rawRequest.substr(pos);
 		parseBody(body);
