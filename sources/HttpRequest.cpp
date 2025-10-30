@@ -267,7 +267,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 		_path = full_path.substr(0, full_path.find('?'));
 		_path_query = full_path.substr(full_path.find('?') + 1);
 	}
-	else if (full_path.find('#') != std::string::npos) // Handler fragments, ignore it or throw an error?
+	else if (full_path.find('#') != std::string::npos) // Handle fragments, ignore it or throw an error?
 	{
 		_path = full_path.substr(0, full_path.find('#'));
 		_path_fragment = full_path.substr(full_path.find('#') + 1);
@@ -285,6 +285,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	_version = line.substr(path_end + 1);
 	return;
 }
+
 void HttpRequest::parseHeaders(const std::string &header_lines)
 {
 	size_t pos = 0;
@@ -328,9 +329,85 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 	return;
 }
 
+void HttpRequest::parseChunkedBody(const std::string &body)
+{
+	try
+	{
+		bool parse_body_complete = false;
+		size_t chunk_length = 0;
+		size_t pos = 0;
+		while (!parse_body_complete)
+		{
+			if (!isxdigit(body[pos]))
+			{
+				_valid_request = false;
+				_status_code = 400;
+				std::cout << "Invalid request: invalid chunk size." << std::endl; // For debugging
+				return;
+			}
+			size_t i = 1;
+			while (isxdigit(body[pos + i]))
+				i++;
+			chunk_length = strtol(body.substr(pos, i).c_str(), NULL, 16);
+			pos += i;
+
+			while (body[pos] != '\r')
+				pos++;
+			if (body.substr(pos, 2) != "\r\n")
+			{
+				_valid_request = false;
+				_status_code = 400;
+				std::cout << "Invalid request: missing CRLF after chunk size." << std::endl; // For debugging
+				return;
+			}
+
+			pos += 2;
+
+			if (chunk_length == 0)
+			{
+				parse_body_complete = true;
+				break;
+			}
+
+			std::string chunk_data = body.substr(pos, chunk_length);
+			_body += chunk_data;
+			pos += chunk_length;
+
+			if (body.substr(pos, 2) != "\r\n")
+			{
+				_valid_request = false;
+				_status_code = 400;
+				std::cout << "Invalid request: missing CRLF after chunk." << std::endl; // For debugging
+				return;
+			}
+			pos += 2;
+		}
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+	
+}
+
 void HttpRequest::parseBody(const std::string &body)
 {
-	if (_headers.find("Content-Length") != _headers.end())
+	if (_headers.find("transfer-encoding") != _headers.end())
+	{
+		if (_headers["transfer-encoding"].find_first_of("chunked") != std::string::npos)
+		{
+			parseChunkedBody(body);
+			return;
+		} else 
+		{
+			_valid_request = false;
+			_status_code = 400;
+			std::cout << "Invalid request: unsupported Transfer-Encoding." << std::endl; // For debugging
+			return;
+		}
+
+	}  
+	else if (_headers.find("Content-Length") != _headers.end())
 	{
 		try 
 		{
@@ -351,7 +428,7 @@ void HttpRequest::parseBody(const std::string &body)
 				return;
 			}
 			// If no Content-Length and no Content-Encoding, body must be empty
-			//_body = body;
+			_body = body;
 		}
 		catch (const std::exception&)
 		{
@@ -361,9 +438,13 @@ void HttpRequest::parseBody(const std::string &body)
 			return;
 		}
 	}
-	else
-		_body = body;
-	return;
+	else if (_headers.find("Content-Length") == _headers.end())
+	{
+		_valid_request = false;
+		_status_code = 411;
+		std::cout << "Invalid request: missing Content-Length." << std::endl; // For debugging
+		return;
+	}
 }
 
 void HttpRequest::parseRequest(const std::string &rawRequest)
@@ -384,7 +465,7 @@ void HttpRequest::parseRequest(const std::string &rawRequest)
 	pos = line_end + 2;
 
 	parseRequestLine(requestLine);
-	if (_valid_request == false)
+	if (!_valid_request)
 		return;
 	if (!isValidVersion(_version))
 		return;

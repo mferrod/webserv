@@ -33,6 +33,7 @@ class HttpRequest
 		void parseRequestLine(const std::string &line);
 		void parseHeaders(const std::string &header_lines);
 		void parseBody(const std::string &body);
+		void parseChunkedBody(const std::string &body);
 
 		bool isValidMethod(const std::string &method) const;
 		bool isImplementedMethod(const std::string &method) const;
