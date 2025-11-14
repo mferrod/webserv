@@ -1,14 +1,30 @@
 #pragma once
 #include <string>
 #include <map>
+#include "HttpRequest.hpp"
 
-struct HttpResponse
+class HttpResponse
 {
-	int status_code;
-	std::string reason;
-	std::map<std::string, std::string> headers;
-	std::string body;
-};
+	private:
+		
+		int 								_status_code;
+		std::string 						_reason;
+		std::map<std::string, std::string>	_headers;
+		std::string 						_body;
+		HttpRequest 						&_request;
+		//ServerConfig 						_fake_server_config; // Not implemented yet.
 
-std::string 	buildResponse(const HttpResponse &res);
-HttpResponse 	makeErrorResponse(int code, const std::string &message);
+	public:
+	
+		HttpResponse();
+		HttpResponse(const HttpRequest &req);
+		~HttpResponse();
+		
+		void 			handleRequest();
+		void 			handleGet();
+		void 			handlePost();
+		void 			handleDelete();
+		void 			makeErrorResponse();
+		std::string 	getReason();
+		std::string 	buildResponse();
+};

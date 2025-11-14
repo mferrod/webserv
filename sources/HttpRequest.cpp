@@ -427,7 +427,6 @@ void HttpRequest::parseBody(const std::string &body)
 				std::cout << "Invalid request: body too small." << std::endl; // For debugging
 				return;
 			}
-			// If no Content-Length and no Content-Encoding, body must be empty
 			_body = body;
 		}
 		catch (const std::exception&)

@@ -8,6 +8,12 @@ int main(void)
     std::string rawRequest = "POST /index.html HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
     request.parseRequest(rawRequest);  
     request.printRequest();
+
+	HttpResponse response = HttpResponse(request);
+	response.handleRequest();
+	std::string rawResponse = response.buildResponse();
+    std::cout << rawResponse << std::endl;
+
     return 0;
 }
 

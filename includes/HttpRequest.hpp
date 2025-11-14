@@ -48,6 +48,13 @@ class HttpRequest
 		bool isValidRequest() const; // Really needed?
 		//void setStatusCode(int code) { _status_code = code; }
 
+		int getStatusCode() const { return _status_code; }
+		std::string getMethod() const { return _method; }
+		std::string getPath() const { return _path; }
+		std::string getVersion() const { return _version; }
+		std::map<std::string, std::string> getHeaders() const { return _headers; }
+		std::string getBody() const { return _body; }
+
 		// For debugging
 		void printRequest() const {
 			if (!_valid_request) {
