@@ -17,7 +17,9 @@ class HttpResponse
 	public:
 	
 		HttpResponse();
+		HttpResponse(const HttpResponse &other);
 		HttpResponse(const HttpRequest &req);
+		HttpResponse &operator=(const HttpResponse &other);
 		~HttpResponse();
 		
 		void 			handleRequest();

@@ -2,13 +2,35 @@
 
 HttpResponse::HttpResponse()
 {
-	_status_code = 200;
-	_reason = "OK";
+	_status_code = 0;
+	_reason = "";
 	_headers.clear();
 	_body = "";
 }
 
 HttpResponse::~HttpResponse() {}
+
+HttpResponse::HttpResponse(const HttpResponse &other)
+{
+	_status_code = other._status_code;
+	_reason = other._reason;
+	_headers = other._headers;
+	_body = other._body;
+	_request = other._request;
+}
+
+HttpResponse &HttpResponse::operator=(const HttpResponse &other)
+{
+	if (this != &other)
+	{
+		_status_code = other._status_code;
+		_reason = other._reason;
+		_headers = other._headers;
+		_body = other._body;
+		_request = other._request;
+	}
+	return *this;
+}
 
 HttpResponse::HttpResponse(const HttpRequest &req)
 {
@@ -18,6 +40,11 @@ HttpResponse::HttpResponse(const HttpRequest &req)
 	_body = "";
 	_request = req;
 }
+
+/* void HttpResponse::handleGet()
+{
+	
+} */
 
 void HttpResponse::handleRequest()
 {

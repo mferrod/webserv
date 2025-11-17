@@ -14,6 +14,8 @@ class HttpRequest
 	public:
 		HttpRequest();
 		~HttpRequest();
+		HttpRequest(const HttpRequest &other);
+		HttpRequest &operator=(const HttpRequest &other);
 
 	private:
 		std::string 						_method;

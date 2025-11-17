@@ -15,6 +15,36 @@ HttpRequest::HttpRequest()
 
 HttpRequest::~HttpRequest() {}
 
+HttpRequest::HttpRequest(const HttpRequest &other)
+{
+	_method = other._method;
+	_path = other._path;
+	_path_query = other._path_query;
+	_path_fragment = other._path_fragment;
+	_version = other._version;
+	_headers = other._headers;
+	_body = other._body;
+	_valid_request = other._valid_request;
+	_status_code = other._status_code;
+}
+
+HttpRequest &HttpRequest::operator=(const HttpRequest &other)
+{
+	if (this != &other)
+	{
+		_method = other._method;
+		_path = other._path;
+		_path_query = other._path_query;
+		_path_fragment = other._path_fragment;
+		_version = other._version;
+		_headers = other._headers;
+		_body = other._body;
+		_valid_request = other._valid_request;
+		_status_code = other._status_code;
+	}
+	return *this;
+}
+
 bool HttpRequest::isValidMethod(const std::string &method) const
 {
 	const std::string valid_methods[] = {
@@ -392,6 +422,8 @@ void HttpRequest::parseChunkedBody(const std::string &body)
 
 void HttpRequest::parseBody(const std::string &body)
 {
+	//Check for server client max body size? (From config file)
+	//If exceeded, set _valid_request to false and _status_code to 413
 	if (_headers.find("transfer-encoding") != _headers.end())
 	{
 		if (_headers["transfer-encoding"].find_first_of("chunked") != std::string::npos)
