@@ -22,6 +22,9 @@ class HttpRequest
 		std::string 						_path;
 		std::string 						_path_query;
 		std::string 						_path_fragment;
+		std::string 						_path_dir;
+		std::string 						_path_file;
+		std::string 						_path_info;
 		std::string 						_version;
 		std::map<std::string, std::string> 	_headers;
 		std::string 						_body;
@@ -49,8 +52,8 @@ class HttpRequest
 		bool isValidHeaderValue(const std::string &value) const;
 		bool isValidHeader(const std::string &name, const std::string &value) const;
 
-		void getPort();
-		void getHost();
+		void getPortHeader();
+		void getHostHeader();
 		
 		bool isValidRequest() const; // Really needed?
 		//void setStatusCode(int code) { _status_code = code; }
