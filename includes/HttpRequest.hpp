@@ -27,6 +27,8 @@ class HttpRequest
 		std::string 						_body;
 		bool 								_valid_request;
 		int 								_status_code;
+		int									_port;
+		std::string							_host;
 		
 	public:
 		
@@ -46,6 +48,9 @@ class HttpRequest
 		
 		bool isValidHeaderValue(const std::string &value) const;
 		bool isValidHeader(const std::string &name, const std::string &value) const;
+
+		void getPort();
+		void getHost();
 		
 		bool isValidRequest() const; // Really needed?
 		//void setStatusCode(int code) { _status_code = code; }

@@ -316,6 +316,57 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	return;
 }
 
+void HttpRequest::getPort()
+{
+	if (_headers.find("host") != _headers.end())
+	{
+		std::string host_header = _headers["host"];
+		size_t colon_pos = host_header.find(':');
+		if (colon_pos != std::string::npos)
+		{
+			std::string port_str = host_header.substr(colon_pos + 1);
+			try
+			{
+				_port = static_cast<int>(strtol(port_str.c_str(), NULL, 10));
+			}
+			catch (const std::exception &e)
+			{
+				std::cerr << "Exception parsing port: " << e.what() << std::endl;
+				_port = 80; // Default port
+			}
+		}
+		else
+		{
+			_port = 80;
+		}
+	}
+	else
+	{
+		_port = 80;
+	}
+}
+
+void HttpRequest::getHost()
+{
+	if (_headers.find("host") != _headers.end())
+	{
+		std::string host_header = _headers["host"];
+		size_t colon_pos = host_header.find(':');
+		if (colon_pos != std::string::npos)
+		{
+			_host = host_header.substr(0, colon_pos);
+		}
+		else
+		{
+			_host = host_header;
+		}
+	}
+	else
+	{
+		_host = "";
+	}
+}
+
 void HttpRequest::parseHeaders(const std::string &header_lines)
 {
 	size_t pos = 0;
@@ -356,6 +407,8 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 		}
 		pos = line_end + 2;
 	}
+	getPort();
+	getHost();
 	return;
 }
 
