@@ -41,3 +41,32 @@ void toLowerCase(std::string &str)
 		str[i] = tolower(str[i]);
 	}
 }
+
+std::string getMimeType(const std::string &file_path)
+{
+	size_t dot_pos = file_path.find_last_of('.');
+	if (dot_pos == std::string::npos)
+		return "application/octet-stream"; // Default MIME type
+
+	std::string extension = file_path.substr(dot_pos + 1);
+	if (extension == "html" || extension == "htm")
+		return "text/html";
+	else if (extension == "css")
+		return "text/css";
+	else if (extension == "js")
+		return "application/javascript";
+	else if (extension == "png")
+		return "image/png";
+	else if (extension == "jpg" || extension == "jpeg")
+		return "image/jpeg";
+	else if (extension == "gif")
+		return "image/gif";
+	else if (extension == "txt")
+		return "text/plain";
+	else if (extension == "json")
+		return "application/json";
+	else if (extension == "xml")
+		return "application/xml";
+	else
+		return "application/octet-stream"; // Default MIME type
+}

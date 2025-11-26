@@ -1,6 +1,9 @@
 #pragma once
 #include <string>
 #include <map>
+#include <sys/stat.h>
+#include <fstream>
+#include "ServerConfig.hpp" //?? Not implemented yet.
 #include "HttpRequest.hpp"
 
 class HttpResponse
@@ -12,7 +15,7 @@ class HttpResponse
 		std::map<std::string, std::string>	_headers;
 		std::string 						_body;
 		HttpRequest 						&_request;
-		//ServerConfig 						_fake_server_config; // Not implemented yet.
+		ServerConfig 						_fake_server_config; // Not implemented yet.
 
 	public:
 	

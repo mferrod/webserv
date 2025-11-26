@@ -41,13 +41,46 @@ HttpResponse::HttpResponse(const HttpRequest &req)
 	_request = req;
 }
 
-/* void HttpResponse::handleGet()
+void HttpResponse::handleGet()
 {
-	
-} */
+	std::string file_path = _fake_server_config.getRoot() + _request.getPath(); // Simplified
+
+	struct stat file_stat;
+	// Check if file exists
+	if (stat(file_path.c_str(), &file_stat) < 0)
+	{
+		_status_code = 404;
+		makeErrorResponse();
+		return;
+	}
+	// Check if it's a regular file
+	if (!S_ISREG(file_stat.st_mode))
+	{
+		_status_code = 403;
+		makeErrorResponse();
+		return;
+	}
+
+	// Open and read file
+	std::ifstream file(file_path.c_str(), std::ios::binary);
+	if (!file.is_open())
+	{
+		_status_code = 500;
+		makeErrorResponse();
+		return;
+	}
+	std::string body;
+	body.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	file.close();
+	_body = body;
+	_status_code = 200;
+	_headers["Content-Length"] = std::to_string(_body.size());
+	_headers["Content-Type"] = getMimeType(file_path);
+}
 
 void HttpResponse::handleRequest()
 {
+	handleTarget();
 	if (_request.isValidRequest())
 	{
 		if (_request.getMethod() == "GET")
