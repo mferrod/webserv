@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstring>
 #include <cerrno>
+#include <fcntl.h>
 
 ServerSocket::ServerSocket(int port, const std::string& host) : _fd(-1), _port(port), _host(host) {
 	// Crear el socket
@@ -15,7 +16,7 @@ ServerSocket::ServerSocket(int port, const std::string& host) : _fd(-1), _port(p
 	// SO_REUSEADDR para evitar "Address already in use"
 	int opt = 1;
 	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-		std::cerr << "Error al configurar el socket: " << strerror(errno) << std::endl;
+		std::cerr << "Error al configurar SO_REUSEADDR: " << strerror(errno) << std::endl;
 		close(_fd);
 		exit(EXIT_FAILURE);
 	}
@@ -28,22 +29,41 @@ ServerSocket::ServerSocket(int port, const std::string& host) : _fd(-1), _port(p
 }
 
 bool ServerSocket::bind() {
-	return ::bind(_fd, (struct sockaddr*)&_address, sizeof(_address)) == 0;
+	int result = ::bind(_fd, (struct sockaddr*)&_address, sizeof(_address));
+	if (result < 0) {
+		std::cerr << "Error en bind() puerto " << _port << ": " << strerror(errno) << std::endl;
+		return false;
+	}
+	return true;
 }
 
 bool ServerSocket::listen() {
-	return ::listen(_fd, SOMAXCONN) == 0;
+	int result = ::listen(_fd, SOMAXCONN);
+	if (result < 0) {
+		std::cerr << "Error en listen() puerto " << _port << ": " << strerror(errno) << std::endl;
+		return false;
+	}
+	return true;
 }
 
 int ServerSocket::accept() {
-	return ::accept(_fd, NULL, NULL);
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+	
+	int clientFd = ::accept(_fd, (struct sockaddr*)&client_addr, &client_len);
+	if (clientFd < 0) {
+		if (errno != EAGAIN && errno != EWOULDBLOCK) {
+			std::cerr << "Error en accept() puerto " << _port << ": " << strerror(errno) << std::endl;
+		}
+		return -1;
+	}
+	
+	return clientFd;
 }
 
 ServerSocket::~ServerSocket() {
 	// No cerrar el fd automáticamente para evitar problemas con copias
-	// if (_fd >= 0) {
-	//     close(_fd);
-	// }
+	// El ServerManager se encargará de cerrar los FDs cuando sea necesario
 }
 
 int ServerSocket::getFd() const {
