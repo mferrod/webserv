@@ -108,7 +108,11 @@ bool ClientConnection::sendPartialResponse() {
 bool ClientConnection::parseRequest() {
     if (_parsed || !_complete) return _parsed;
     
-    // Separar headers y body
+	_request = HttpRequest();
+	_request.parseRequest(_buffer);
+	_response = HttpResponse(_request);
+
+   /*  // Separar headers y body
     size_t headerEnd = _buffer.find("\r\n\r\n");
     if (headerEnd == std::string::npos) {
         std::cerr << "Request malformada, sin separador de headers" << std::endl;
@@ -160,8 +164,13 @@ bool ClientConnection::parseRequest() {
         }
         
         pos = lineEnd + 2;
-    }
+    } */
     
     _parsed = true;
     return true;
+}
+
+void ClientConnection::makeResponse() {
+	_response.handleRequest();
+	_response_buffer = _response.buildResponse();
 }

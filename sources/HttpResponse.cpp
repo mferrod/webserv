@@ -41,6 +41,11 @@ HttpResponse::HttpResponse(const HttpRequest &req)
 	_request = req;
 }
 
+/* void HttpResponse::handleTargetLocation()
+{
+	
+} */
+
 void HttpResponse::handleGet()
 {
 	std::string file_path = _fake_server_config.getRoot() + _request.getPath(); // Simplified
@@ -80,21 +85,24 @@ void HttpResponse::handleGet()
 
 void HttpResponse::handleRequest()
 {
-	handleTarget();
+	handleTargetLocation();
 	if (_request.isValidRequest())
 	{
-		if (_request.getMethod() == "GET")
+		if (_request.getMethod() == "GET") // Check method implementation
 		{
 			handleGet();
 		}
-		else if (_request.getMethod() == "POST")
+		//Pending implementation
+		/* else if (_request.getMethod() == "POST")
 		{
 			handlePost();
 		}
 		else if (_request.getMethod() == "DELETE")
 		{
 			handleDelete();
-		}
+		} */
+
+
 		/* else //Necessary?
 		{
 			makeErrorResponse();
@@ -140,6 +148,7 @@ void HttpResponse::makeErrorResponse()
 	_body = "<html><body><h1>" + std::to_string(_status_code) + " " + _reason + "</h1></body></html>";
 	_headers["Content-Type"] = "text/html";
 	_headers["Content-Length"] = std::to_string(_body.size());
+	_headers["Connection"] = "close";
 	return;
 }
 

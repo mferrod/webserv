@@ -153,7 +153,8 @@ void ServerManager::handleClientEvent(int clientIndex) {
                 
                 // Si la petición está completa, parsear y preparar respuesta
                 if (client.isRequestComplete() && !client.isParsed()) {
-                    if (!client.parseRequest()) {
+					client.parseRequest();
+                    /* if (!client.parseRequest()) {
                         // Request malformada → 400 Bad Request
                         std::string errorResponse = 
                             "HTTP/1.1 400 Bad Request\r\n"
@@ -165,16 +166,21 @@ void ServerManager::handleClientEvent(int clientIndex) {
                         poll_fds[i].events = POLLOUT;
                         client.sendResponse(errorResponse);
                         return;
-                    }
+                    } */
                     
                     // Cambiar eventos a POLLOUT para enviar respuesta
                     poll_fds[i].events = POLLOUT;
                 }
             }
-            
+			break; // Aquí o abajo?
+		}
+	}
+}
 if (poll_fds[i].revents & POLLOUT) {
+	client.makeResponse();
+	std::string response = client.getResponseBuffer();
     // Generar respuesta según el método HTTP
-    std::string method = client.getMethod();
+    /* std::string method = client.getMethod();
     std::string path = client.getPath();
     std::string body;
     std::string response;
@@ -214,7 +220,7 @@ if (poll_fds[i].revents & POLLOUT) {
         "Content-Type: text/html\r\n"
         "Content-Length: " + ss.str() + "\r\n"
         "Connection: close\r\n"
-        "\r\n" + body;
+        "\r\n" + body; */
 
     if (client.sendResponse(response)) {
         removeClient(clientIndex);
@@ -222,12 +228,10 @@ if (poll_fds[i].revents & POLLOUT) {
         std::cerr << "No se pudo enviar respuesta completa a FD " << clientFd << std::endl;
     }
 }
-
-            
-            break;
-        }
-    }
-}
+/* 					break; // Aquí o arriba?
+		}
+	}
+} */
 
 
 void ServerManager::removeClient(int clientIndex) {

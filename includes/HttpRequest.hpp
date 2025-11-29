@@ -32,7 +32,8 @@ class HttpRequest
 		int 								_status_code;
 		int									_port;
 		std::string							_host;
-		
+		std::string							_target_location;
+
 	public:
 		
 		void parseRequest(const std::string &rawRequest);
@@ -54,6 +55,11 @@ class HttpRequest
 
 		void getPortHeader();
 		void getHostHeader();
+
+		void handleTargetLocation();
+		void handleGet();
+		void handlePost();
+		void handleDelete();
 		
 		bool isValidRequest() const; // Really needed?
 		//void setStatusCode(int code) { _status_code = code; }
