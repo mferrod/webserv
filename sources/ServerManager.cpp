@@ -153,7 +153,7 @@ void ServerManager::handleClientEvent(int clientIndex) {
                 
                 // Si la petición está completa, parsear y preparar respuesta
                 if (client.isRequestComplete() && !client.isParsed()) {
-					client.parseRequest(); 										// Add server configuration here
+					client.parseRequest(); 										// Add server configuration here?
                     /* if (!client.parseRequest()) {
                         // Request malformada → 400 Bad Request
                         std::string errorResponse = 
@@ -172,15 +172,11 @@ void ServerManager::handleClientEvent(int clientIndex) {
                     poll_fds[i].events = POLLOUT;
                 }
             }
-/* 			break; // Aquí o abajo?
-		}
-	}
-} */
 			if (poll_fds[i].revents & POLLOUT) {
-				client.makeResponse();								// Add server configuration here
-				std::string response = client.getResponseBuffer();
+				//client.makeResponse();								// Add server configuration here // Working on it
+				//std::string response = client.getResponseBuffer();
 			    // Generar respuesta según el método HTTP
-			    /* std::string method = client.getMethod();
+			    std::string method = client.getMethod();
 			    std::string path = client.getPath();
 			    std::string body;
 			    std::string response;
@@ -220,7 +216,7 @@ void ServerManager::handleClientEvent(int clientIndex) {
 			        "Content-Type: text/html\r\n"
 			        "Content-Length: " + ss.str() + "\r\n"
 			        "Connection: close\r\n"
-			        "\r\n" + body; */
+			        "\r\n" + body;
 
 			    if (client.sendResponse(response)) {
 			        removeClient(clientIndex);
@@ -228,7 +224,7 @@ void ServerManager::handleClientEvent(int clientIndex) {
 			        std::cerr << "No se pudo enviar respuesta completa a FD " << clientFd << std::endl;
 			    }
 			}
-					break; // Aquí o arriba?
+					break;
 		}
 	}
 }
