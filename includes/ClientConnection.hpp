@@ -34,7 +34,7 @@ class ClientConnection {
 		bool isResponseSent() const { return _response_sent; }
 		int getFd() const { return _fd; }
 		const std::string& getBuffer() const { return _buffer; }
-		bool parseRequest();
+		bool parseRequest(const ServerConfig &serverConfig);
 		const std::string& getMethod() const { return _method; }
 		const std::string& getPath() const { return _path; }
 		const std::string& getVersion() const { return _version; }

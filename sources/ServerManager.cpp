@@ -153,7 +153,7 @@ void ServerManager::handleClientEvent(int clientIndex) {
                 
                 // Si la petición está completa, parsear y preparar respuesta
                 if (client.isRequestComplete() && !client.isParsed()) {
-					client.parseRequest();
+					client.parseRequest(); 										// Add server configuration here
                     /* if (!client.parseRequest()) {
                         // Request malformada → 400 Bad Request
                         std::string errorResponse = 
@@ -172,66 +172,66 @@ void ServerManager::handleClientEvent(int clientIndex) {
                     poll_fds[i].events = POLLOUT;
                 }
             }
-			break; // Aquí o abajo?
-		}
-	}
-}
-if (poll_fds[i].revents & POLLOUT) {
-	client.makeResponse();
-	std::string response = client.getResponseBuffer();
-    // Generar respuesta según el método HTTP
-    /* std::string method = client.getMethod();
-    std::string path = client.getPath();
-    std::string body;
-    std::string response;
-
-    if (method == "GET") {
-        body = "<html><body><h1>GET: " + path + "</h1></body></html>";
-    } 
-    else if (method == "POST") {
-        body = "<html><body><h1>POST: " + path + "</h1></body></html>";
-    } 
-    else if (method == "DELETE") {
-        body = "<html><body><h1>DELETE: " + path + "</h1></body></html>";
-    } 
-    else {
-        // Método no soportado → 405 Method Not Allowed
-        body = "<html><body>Method Not Allowed</body></html>";
-        std::stringstream ss;
-        ss << body.length();
-        response = 
-            "HTTP/1.1 405 Method Not Allowed\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: " + ss.str() + "\r\n"
-            "Connection: close\r\n"
-            "\r\n" + body;
-        
-        if (client.sendResponse(response)) {
-            removeClient(clientIndex);
-        }
-        break;
-    }
-
-    // Para métodos válidos (GET, POST, DELETE)
-    std::stringstream ss;
-    ss << body.length();
-    response = 
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: " + ss.str() + "\r\n"
-        "Connection: close\r\n"
-        "\r\n" + body; */
-
-    if (client.sendResponse(response)) {
-        removeClient(clientIndex);
-    } else {
-        std::cerr << "No se pudo enviar respuesta completa a FD " << clientFd << std::endl;
-    }
-}
-/* 					break; // Aquí o arriba?
+/* 			break; // Aquí o abajo?
 		}
 	}
 } */
+			if (poll_fds[i].revents & POLLOUT) {
+				client.makeResponse();								// Add server configuration here
+				std::string response = client.getResponseBuffer();
+			    // Generar respuesta según el método HTTP
+			    /* std::string method = client.getMethod();
+			    std::string path = client.getPath();
+			    std::string body;
+			    std::string response;
+			
+			    if (method == "GET") {
+			        body = "<html><body><h1>GET: " + path + "</h1></body></html>";
+			    } 
+			    else if (method == "POST") {
+			        body = "<html><body><h1>POST: " + path + "</h1></body></html>";
+			    } 
+			    else if (method == "DELETE") {
+			        body = "<html><body><h1>DELETE: " + path + "</h1></body></html>";
+			    } 
+			    else {
+			        // Método no soportado → 405 Method Not Allowed
+			        body = "<html><body>Method Not Allowed</body></html>";
+			        std::stringstream ss;
+			        ss << body.length();
+			        response = 
+			            "HTTP/1.1 405 Method Not Allowed\r\n"
+			            "Content-Type: text/html\r\n"
+			            "Content-Length: " + ss.str() + "\r\n"
+			            "Connection: close\r\n"
+			            "\r\n" + body;
+			
+			        if (client.sendResponse(response)) {
+			            removeClient(clientIndex);
+			        }
+			        break;
+			    }
+			
+			    // Para métodos válidos (GET, POST, DELETE)
+			    std::stringstream ss;
+			    ss << body.length();
+			    response = 
+			        "HTTP/1.1 200 OK\r\n"
+			        "Content-Type: text/html\r\n"
+			        "Content-Length: " + ss.str() + "\r\n"
+			        "Connection: close\r\n"
+			        "\r\n" + body; */
+
+			    if (client.sendResponse(response)) {
+			        removeClient(clientIndex);
+			    } else {
+			        std::cerr << "No se pudo enviar respuesta completa a FD " << clientFd << std::endl;
+			    }
+			}
+					break; // Aquí o arriba?
+		}
+	}
+}
 
 
 void ServerManager::removeClient(int clientIndex) {

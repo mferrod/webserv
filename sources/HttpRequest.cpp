@@ -572,7 +572,25 @@ void HttpRequest::parseBody(const std::string &body)
 	}
 }
 
-void HttpRequest::parseRequest(const std::string &rawRequest)
+void HttpRequest::checkBodySize(const ServerConfig &serverConfig) // Check value from client_max_body_size directive
+{
+	try 
+	{
+		if (serverConfig.getAllDirectives().find("client_max_body_size") != serverConfig.getAllDirectives().end())
+		{
+			size_t max_body_size = static_cast<size_t>(strtol(serverConfig.getAllDirectives().at("client_max_body_size").c_str(), NULL, 10));
+			if (_body.size() > max_body_size)
+			{
+				_valid_request = false;
+				_status_code = 413;
+				std::cerr << "Invalid request: body exceeds client_max_body_size." << std::endl;
+				return;
+			}
+		}
+	}
+}
+
+void HttpRequest::parseRequest(const std::string &rawRequest, const ServerConfig &serverConfig)
 {
 	HttpRequest request;
 	size_t pos = 0;
@@ -610,10 +628,11 @@ void HttpRequest::parseRequest(const std::string &rawRequest)
 	
 	parseHeaders(header_lines);
 
-	if (pos < rawRequest.size() && _valid_request) // Check headers before parsing body
+	if (pos < rawRequest.size() && _valid_request)
 	{
 		std::string body = rawRequest.substr(pos);
 		parseBody(body);
+		checkBodySize(serverConfig);
 	}
 
 	return;

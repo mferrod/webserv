@@ -36,7 +36,7 @@ class HttpRequest
 
 	public:
 		
-		void parseRequest(const std::string &rawRequest);
+		void parseRequest(const std::string &rawRequest, const ServerConfig &serverConfig);
 
 		void parseRequestLine(const std::string &line);
 		void parseHeaders(const std::string &header_lines);

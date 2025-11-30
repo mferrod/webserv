@@ -105,11 +105,11 @@ bool ClientConnection::sendPartialResponse() {
 	return false; // Aún hay datos por enviar
 }
 
-bool ClientConnection::parseRequest() {
+bool ClientConnection::parseRequest(const ServerConfig &serverConfig) {
     if (_parsed || !_complete) return _parsed;
     
 	_request = HttpRequest();
-	_request.parseRequest(_buffer);
+	_request.parseRequest(_buffer, serverConfig);
 	_response = HttpResponse(_request);
 
    /*  // Separar headers y body
