@@ -73,3 +73,11 @@ int ServerSocket::getFd() const {
 int ServerSocket::getPort() const {
 	return _port;
 }
+
+std::string ServerSocket::getHost() const {
+	return _host;
+}
+
+ServerConfig ServerSocket::getServerConfig() const {
+	return _server_config;
+}

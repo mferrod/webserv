@@ -170,7 +170,7 @@ bool ClientConnection::parseRequest(const ServerConfig &serverConfig) {
     return true;
 }
 
-void ClientConnection::makeResponse() {
-	_response.handleRequest();
+void ClientConnection::makeResponse(std::vector<ServerSocket> &servers) {
+	_response.handleRequest(std::vector<ServerSocket> &servers);
 	_response_buffer = _response.buildResponse();
 }

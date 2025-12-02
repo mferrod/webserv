@@ -5,13 +5,15 @@
 #include <arpa/inet.h>
 #include <cstdlib>
 #include <cerrno>
+#include <vector>
 
 class ServerSocket {
 private:
-    int _fd;
-    int _port;
-    std::string _host;
-    struct sockaddr_in _address;
+    int 					_fd;
+    int 					_port;
+    std::string 			_host;
+    struct sockaddr_in		_address;
+	ServerConfig			_server_config;
 
 public:
     ServerSocket(int port, const std::string& host = "127.0.0.1");
@@ -22,4 +24,6 @@ public:
     int accept();
     int getFd() const;
     int getPort() const;
+	std::string getHost() const;
+	ServerConfig getServerConfig() const;
 };
