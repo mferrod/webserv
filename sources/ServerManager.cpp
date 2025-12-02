@@ -173,10 +173,10 @@ void ServerManager::handleClientEvent(int clientIndex) {
                 }
             }
 			if (poll_fds[i].revents & POLLOUT) {
-				client.makeResponse(servers);								// Add server configuration here // Working on it
-				std::string response = client.getResponseBuffer();
+				//client.makeResponse(servers);								// Add server configuration here // Working on it
+				//std::string response = client.getResponseBuffer();
 			    // Generar respuesta según el método HTTP
-			    /* std::string method = client.getMethod();
+			    std::string method = client.getMethod();
 			    std::string path = client.getPath();
 			    std::string body;
 			    std::string response;
@@ -222,7 +222,7 @@ void ServerManager::handleClientEvent(int clientIndex) {
 			        removeClient(clientIndex);
 			    } else {
 			        std::cerr << "No se pudo enviar respuesta completa a FD " << clientFd << std::endl;
-			    } */
+			    }
 			}
 					break;
 		}
