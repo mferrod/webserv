@@ -15,7 +15,6 @@ class HttpResponse
 		std::map<std::string, std::string>	_headers;
 		std::string 						_body;
 		HttpRequest 						&_request;
-		ServerConfig 						_fake_server_config; // Not implemented yet.
 
 	public:
 	
@@ -32,4 +31,5 @@ class HttpResponse
 		void 			makeErrorResponse();
 		std::string 	getReason();
 		std::string 	buildResponse();
+		void			handleTargetLocation(const ServerConfig &server_config);
 };

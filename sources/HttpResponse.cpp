@@ -41,10 +41,22 @@ HttpResponse::HttpResponse(const HttpRequest &req)
 	_request = req;
 }
 
-/* void HttpResponse::handleTargetLocation()
+void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 {
-	
-} */
+	size_t max_match = 0;
+	Location target_location = server_config.getLocations()[0];
+	for (size_t i = 1; i < server_config.getLocationCount(); i++)
+	{
+		Location loc = server_config.getLocations()[i];
+		size_t size = 0;
+		for (size_t j = 0; j < loc.getPath().length(); j++)
+		{
+			if (loc.getPath()[j] == '/' && loc.getPath()[j + 1] != '\0')
+				size++;
+		}
+		// ...  Working on it
+	}
+}
 
 void HttpResponse::handleGet()
 {
@@ -83,9 +95,22 @@ void HttpResponse::handleGet()
 	_headers["Content-Type"] = getMimeType(file_path);
 }
 
-void HttpResponse::handleRequest()
+void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 {
-	handleTargetLocation();
+	size_t server_index;
+	for (server_index = 0; server_index < servers.size(); server_index++)
+	{
+		if (servers[server_index].getPort() == _request.getPort())
+		{
+			if (!servers[server_index].getServerConfig().getDirective("server_name").empty() 
+			&& servers[server_index].getServerConfig().getDirective("server_name") != _request.getHost())
+				continue;
+			//if //Check client ip against host configuration
+			break;
+		}
+			
+	}
+	handleTargetLocation(servers[server_index].getServerConfig());
 	if (_request.isValidRequest())
 	{
 		if (_request.getMethod() == "GET") // Check method implementation
