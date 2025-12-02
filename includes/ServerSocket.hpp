@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cerrno>
 #include <vector>
+#include "ServerConfig.hpp"
 
 class ServerSocket {
 private:

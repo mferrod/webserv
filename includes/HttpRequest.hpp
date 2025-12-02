@@ -8,6 +8,8 @@
 #include <cctype>
 #include <iostream>
 #include "httpUtils.hpp"
+#include "ServerConfig.hpp"
+#include "Location.hpp"
 
 class HttpRequest
 {
@@ -32,7 +34,7 @@ class HttpRequest
 		int 								_status_code;
 		int									_port;
 		std::string							_host;
-		std::string							_target_location;
+		Location							_target_location;
 
 	public:
 		
@@ -64,12 +66,15 @@ class HttpRequest
 		bool isValidRequest() const; // Really needed?
 		//void setStatusCode(int code) { _status_code = code; }
 
+		void setTargetLocation(const Location &location) { _target_location = location; }
+
 		int getStatusCode() const { return _status_code; }
 		std::string getMethod() const { return _method; }
 		std::string getPath() const { return _path; }
 		std::string getVersion() const { return _version; }
 		std::map<std::string, std::string> getHeaders() const { return _headers; }
 		std::string getBody() const { return _body; }
+		Location getTargetLocation() const { return _target_location; }
 
 		// For debugging
 		void printRequest() const {

@@ -54,8 +54,15 @@ void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 			if (loc.getPath()[j] == '/' && loc.getPath()[j + 1] != '\0')
 				size++;
 		}
-		// ...  Working on it
+		size_t match_index = _request.getPath().find(loc.getPath());
+		if (match_index != std::string::npos && (_request.getPath()[match_index + loc.getPath().length()] == '/' || match_index + loc.getPath().length() == '\0')
+		&& size > max_match)
+		{
+			max_match = size;
+			target_location = loc;
+		}
 	}
+	_request.setTargetLocation(target_location.getPath());
 }
 
 void HttpResponse::handleGet()
