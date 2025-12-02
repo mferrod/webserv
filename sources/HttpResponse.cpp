@@ -41,6 +41,32 @@ HttpResponse::HttpResponse(const HttpRequest &req)
 	_request = req;
 }
 
+void HttpResponse::isAllowedMethod()
+{
+	std::string allowed_methods = _request.getTargetLocation().getDirective("allowed_methods");
+	if (allowed_methods.find(_request.getMethod()) == std::string::npos)
+	{
+		_status_code = 405;
+		_request.setValidRequest(false);
+		return;
+	}
+}
+
+void HttpResponse::checkClientMaxBodySize()
+{
+	std::string max_body_size_str = _request.getTargetLocation().getDirective("client_max_body_size");
+	if (!max_body_size_str.empty())
+	{
+		size_t max_body_size = static_cast<size_t>(strtol(max_body_size_str.c_str(), NULL, 10)); // Convert value to size_t
+		if (_request.getBody().size() > max_body_size)
+		{
+			_status_code = 413;
+			_request.setValidRequest(false);
+			return;
+		}
+	}
+}
+
 void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 {
 	size_t max_match = 0;
@@ -67,7 +93,7 @@ void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 
 void HttpResponse::handleGet()
 {
-	std::string file_path = _fake_server_config.getRoot() + _request.getPath(); // Simplified
+	
 
 	struct stat file_stat;
 	// Check if file exists
@@ -118,6 +144,8 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 			
 	}
 	handleTargetLocation(servers[server_index].getServerConfig());
+	checkClientMaxBodySize();
+	isAllowedMethod();
 	if (_request.isValidRequest())
 	{
 		if (_request.getMethod() == "GET") // Check method implementation

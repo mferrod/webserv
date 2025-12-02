@@ -14,7 +14,7 @@ class HttpResponse
 		std::string 						_reason;
 		std::map<std::string, std::string>	_headers;
 		std::string 						_body;
-		HttpRequest 						&_request;
+		HttpRequest 						_request;
 
 	public:
 	
@@ -32,4 +32,5 @@ class HttpResponse
 		std::string 	getReason();
 		std::string 	buildResponse();
 		void			handleTargetLocation(const ServerConfig &server_config);
+		void			isAllowedMethod();
 };

@@ -63,18 +63,19 @@ class HttpRequest
 		void handlePost();
 		void handleDelete();
 		
-		bool isValidRequest() const; // Really needed?
+		bool isValidRequest() const;
 		//void setStatusCode(int code) { _status_code = code; }
 
 		void setTargetLocation(const Location &location) { _target_location = location; }
+		void setValidRequest(bool valid) { _valid_request = valid; }
 
-		int getStatusCode() const { return _status_code; }
-		std::string getMethod() const { return _method; }
-		std::string getPath() const { return _path; }
-		std::string getVersion() const { return _version; }
-		std::map<std::string, std::string> getHeaders() const { return _headers; }
-		std::string getBody() const { return _body; }
-		Location getTargetLocation() const { return _target_location; }
+		int									getStatusCode() const { return _status_code; }
+		std::string							&getMethod() const { return _method; }
+		std::string							&getPath() const { return _path; }
+		std::string							&getVersion() const { return _version; }
+		std::map<std::string, std::string>	&getHeaders() const { return _headers; }
+		std::string							&getBody() const { return _body; }
+		Location							getTargetLocation() const { return _target_location; }
 
 		// For debugging
 		void printRequest() const {
