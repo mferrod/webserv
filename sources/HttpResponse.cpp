@@ -91,9 +91,61 @@ void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 	_request.setTargetLocation(target_location.getPath());
 }
 
+void HttpResponse::redirection(std::string url)
+{
+	_headers.clear();
+	_body.clear();
+	_headers["Location"] = url;
+	_status_code = 301;
+}
+
 void HttpResponse::handleGet()
 {
-	
+	Location target_location = _request.getTargetLocation();
+	if (!target_location.getDirective("rewrite").empty())
+	{
+		redirection(target_location.getDirective("rewrite"));
+		makeErrorResponse();
+		return;
+	}
+
+	if (_request.getFile().empty())
+	{
+		if (_request.getPath() == target_location.getPath() && target_location.getDirective("index") != "")
+			_request.setPathFile(target_location.getDirective("index"));
+		else if (target_location.getDirective("autoindex") == "on") // Simple autoindex implementation
+		{
+			_status_code = 200;
+			_body = "<html><body><h1>Autoindex is ON - Directory listing for " + _request.getPath() + "</h1></body></html>";
+			_headers["Content-Type"] = "text/html";
+			_headers["Content-Length"] = std::to_string(_body.size());
+			return;
+		}
+		else
+		{
+			_status_code = 404;
+			makeErrorResponse();
+			return;
+		}
+	}
+
+	if (target_location.getDirective("cgi_processing") == "")
+	{
+		std::string full_path = target_location.getDirective("root") + "/" + _request.getPath().substr(target_location.getPath().length()) + "/" + _request.getFile();
+		readFile(full_path); // Not implemented yet
+		if (_status_code == 404 && target_location.getDirective("autoindex") == "on") // Simple autoindex implementation
+		{
+			_status_code = 200;
+			_body = "<html><body><h1>Autoindex is ON - Directory listing for " + _request.getPath() + "</h1></body></html>";
+			_headers["Content-Type"] = "text/html";
+			_headers["Content-Length"] = std::to_string(_body.size());
+		}
+		return;
+	}
+	else
+		cgiExec(); // Not implemented yet
+
+		
 
 	struct stat file_stat;
 	// Check if file exists

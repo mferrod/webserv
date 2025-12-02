@@ -33,4 +33,6 @@ class HttpResponse
 		std::string 	buildResponse();
 		void			handleTargetLocation(const ServerConfig &server_config);
 		void			isAllowedMethod();
+		void			checkClientMaxBodySize();
+		void			redirection(std::string url);
 };

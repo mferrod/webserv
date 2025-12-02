@@ -68,6 +68,7 @@ class HttpRequest
 
 		void setTargetLocation(const Location &location) { _target_location = location; }
 		void setValidRequest(bool valid) { _valid_request = valid; }
+		void setPathFile(const std::string &file) { _path_file = file; }
 
 		int									getStatusCode() const { return _status_code; }
 		std::string							&getMethod() const { return _method; }
@@ -76,6 +77,7 @@ class HttpRequest
 		std::map<std::string, std::string>	&getHeaders() const { return _headers; }
 		std::string							&getBody() const { return _body; }
 		Location							getTargetLocation() const { return _target_location; }
+		std::string							getFile() const { return _path_file; }
 
 		// For debugging
 		void printRequest() const {
