@@ -24,7 +24,7 @@ public:
     ~ConfigParser();
     
     bool parseConfig(const std::string &filename);
-    const std::vector<ServerConfig> &getServers() const;
+    std::vector<ServerConfig> &getServers();
 };
 
 #endif

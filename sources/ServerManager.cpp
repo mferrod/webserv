@@ -11,7 +11,7 @@ ServerManager::ServerManager(const std::string &configPath) {
     ConfigParser configParser;
     ConfigValidator configValidator;
     configParser.parseConfig(configPath);
-    const std::vector<ServerConfig> &serverConfigs = configParser.getServers();
+    std::vector<ServerConfig> &serverConfigs = configParser.getServers();
     try {
         configValidator.validateServers(serverConfigs);
     } catch (const std::exception &e) {
