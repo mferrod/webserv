@@ -1,4 +1,4 @@
-#include "ConfigValidator.hpp"
+#include "../includes/ConfigValidator.hpp"
 #include <iostream>
 #include <sstream>
 #include <cstdlib>
@@ -151,7 +151,7 @@ std::vector<int> ConfigValidator::parseErrorPages(const std::string &codes) cons
     return result;
 }
 
-void ConfigValidator::validateListen(const std::string &value, const ServerConfig &serverConfig) {
+void ConfigValidator::validateListen(const std::string &value, ServerConfig &serverConfig) {
     if (value.empty()) {
         throw std::invalid_argument("Error: listen directive cannot be empty");
     }
@@ -404,7 +404,7 @@ void ConfigValidator::validateReturn(const std::string &value) {
     }
 }
 
-void ConfigValidator::validateDirective(const std::string &key, const std::string &value, bool isLocationContext, const ServerConfig &serverConfig) {
+void ConfigValidator::validateDirective(const std::string &key, const std::string &value, bool isLocationContext, ServerConfig &serverConfig) {
     if (!isValidDirective(key, isLocationContext)) {
         throw std::invalid_argument("Error: unknown directive: " + key);
     }
@@ -441,7 +441,7 @@ void ConfigValidator::validateDirective(const std::string &key, const std::strin
         validateReturn(value);
 }
 
-void ConfigValidator::validateServerConfig(const ServerConfig &server) {
+void ConfigValidator::validateServerConfig(ServerConfig &server) {
     std::map<std::string, std::string> directives = server.getAllDirectives();
     
     // Validar que existan directivas obligatorias
@@ -461,11 +461,11 @@ void ConfigValidator::validateServerConfig(const ServerConfig &server) {
     // Validar locations
     std::vector<Location> locations = server.getLocations();
     for (size_t i = 0; i < locations.size(); ++i) {
-        validateLocation(locations[i]);
+        validateLocation(locations[i], server);
     }
 }
 
-void ConfigValidator::validateLocation(const Location &location) {
+void ConfigValidator::validateLocation(const Location &location, ServerConfig &serverConfig) {
     if (location.getPath().empty()) {
         throw std::invalid_argument("Error: location path cannot be empty");
     }
@@ -474,11 +474,11 @@ void ConfigValidator::validateLocation(const Location &location) {
     
     // Validar todas las directivas de location
     for (std::map<std::string, std::string>::const_iterator it = directives.begin(); it != directives.end(); ++it) {
-        validateDirective(it->first, it->second, true);
+        validateDirective(it->first, it->second, true, serverConfig);
     }
 }
 
-void ConfigValidator::validateServers(const std::vector<ServerConfig> &servers) {
+void ConfigValidator::validateServers(std::vector<ServerConfig> &servers) {
     if (servers.empty()) {
         throw std::invalid_argument("Error: at least one server block must be defined");
     }

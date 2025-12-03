@@ -30,11 +30,11 @@ public:
     ConfigValidator();
     ~ConfigValidator();
     
-    void validateServers(const std::vector<ServerConfig> &servers);
-    void validateServerConfig(const ServerConfig &server);
-    void validateLocation(const Location &location);
-    void validateDirective(const std::string &key, const std::string &value, bool isLocationContext);
-    void validateListen(const std::string &value);
+    void validateServers(std::vector<ServerConfig> &servers);
+    void validateServerConfig(ServerConfig &server);
+    void validateLocation(const Location &location, ServerConfig &serverConfig);
+    void validateDirective(const std::string &key, const std::string &value, bool isLocationContext, ServerConfig &serverConfig);
+    void validateListen(const std::string &value, ServerConfig &serverConfig);
     void validateHost(const std::string &value);
     void validateServerName(const std::string &value);
     void validateRoot(const std::string &value);

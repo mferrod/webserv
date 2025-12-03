@@ -117,6 +117,6 @@ bool ClientConnection::parseRequest() {
 }
 
 void ClientConnection::makeResponse(std::vector<ServerSocket> &servers) {
-	_response.handleRequest(std::vector<ServerSocket> &servers);
+	_response.handleRequest(servers);
 	_response_buffer = _response.buildResponse();
 }
