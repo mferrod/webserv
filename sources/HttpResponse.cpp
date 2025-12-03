@@ -88,7 +88,7 @@ void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 			target_location = loc;
 		}
 	}
-	_request.setTargetLocation(target_location.getPath());
+	_request.setTargetLocation(target_location);
 }
 
 void HttpResponse::redirection(std::string url)

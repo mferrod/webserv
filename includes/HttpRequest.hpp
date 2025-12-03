@@ -68,7 +68,7 @@ class HttpRequest
 		bool isValidRequest() const;
 		//void setStatusCode(int code) { _status_code = code; }
 
-		void setTargetLocation(const Location &location) { _target_location = location; }
+		void setTargetLocation(Location &location) { _target_location = location; }
 		void setValidRequest(bool valid) { _valid_request = valid; }
 		void setPathFile(const std::string &file) { _path_file = file; }
 
