@@ -151,7 +151,7 @@ std::vector<int> ConfigValidator::parseErrorPages(const std::string &codes) cons
     return result;
 }
 
-void ConfigValidator::validateListen(const std::string &value) {
+void ConfigValidator::validateListen(const std::string &value, const ServerConfig &serverConfig) {
     if (value.empty()) {
         throw std::invalid_argument("Error: listen directive cannot be empty");
     }
@@ -165,6 +165,10 @@ void ConfigValidator::validateListen(const std::string &value) {
     
     std::string host = value.substr(0, colonPos);
     std::string portStr = value.substr(colonPos + 1);
+    if (serverConfig.getDirective("host").empty()) {
+        serverConfig.setDirective("host", host);
+    }
+    serverConfig.setDirective("port", portStr);
     
     if (!isValidIP(host)) {
         throw std::invalid_argument("Error: invalid IP address: " + host);
@@ -400,7 +404,7 @@ void ConfigValidator::validateReturn(const std::string &value) {
     }
 }
 
-void ConfigValidator::validateDirective(const std::string &key, const std::string &value, bool isLocationContext) {
+void ConfigValidator::validateDirective(const std::string &key, const std::string &value, bool isLocationContext, const ServerConfig &serverConfig) {
     if (!isValidDirective(key, isLocationContext)) {
         throw std::invalid_argument("Error: unknown directive: " + key);
     }
@@ -410,7 +414,7 @@ void ConfigValidator::validateDirective(const std::string &key, const std::strin
     }
     
     if (key == "listen")
-        validateListen(value);
+        validateListen(value, serverConfig);
     else if (key == "host")
         validateHost(value);
     else if (key == "server_name")
@@ -451,7 +455,7 @@ void ConfigValidator::validateServerConfig(const ServerConfig &server) {
     
     // Validar todas las directivas
     for (std::map<std::string, std::string>::const_iterator it = directives.begin(); it != directives.end(); ++it) {
-        validateDirective(it->first, it->second, false);
+        validateDirective(it->first, it->second, false, server);
     }
     
     // Validar locations

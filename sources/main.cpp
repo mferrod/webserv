@@ -8,11 +8,9 @@ int main(int argc, char **argv) {
     }
 
     try {
-        if (argc == 2)
-			ServerManager manager(argv[1]); // Encapsula el parsing + arranque del server
-		else
-			ServerManager manager("default.conf");
-        manager.run();                   // Entra al bucle de eventos con poll()
+        std::string configFile = (argc == 2) ? argv[1] : "default_config.conf";
+		ServerManager manager(configFile);
+        manager.run(); // Entra al bucle de eventos con poll()
     } catch (const std::exception &e) {
         std::cerr << "Fatal error: " << e.what() << std::endl;
         return 1;

@@ -4,8 +4,12 @@
 #include <cstring>
 #include <cerrno>
 #include <fcntl.h>
+#include <sstream>
 
-ServerSocket::ServerSocket(int port, const std::string& host) : _fd(-1), _port(port), _host(host) {
+ServerSocket::ServerSocket(const ServerConfig& serverConfig) : _fd(-1), _host(serverConfig.getDirective("host")), _server_config(serverConfig) {
+	//Parseo del puerto.
+	std::stringstream ss(serverConfig.getDirective("port"));
+   	ss >> _port;
 	// Crear el socket
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_fd < 0) {

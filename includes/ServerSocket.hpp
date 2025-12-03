@@ -17,7 +17,7 @@ private:
 	ServerConfig			_server_config;
 
 public:
-    ServerSocket(int port, const std::string& host = "127.0.0.1");
+    ServerSocket(const ServerConfig& config);
     ~ServerSocket();
     
     bool bind();

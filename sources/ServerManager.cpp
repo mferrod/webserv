@@ -8,11 +8,19 @@
 #include <fcntl.h>  // fcntl para non-blocking
 
 ServerManager::ServerManager(const std::string &configPath) {
-    (void)configPath; // Suprimir warning de parámetro no usado
+    ConfigParser configParser;
+    ConfigValidator configValidator;
+    configParser.parseConfig(configPath);
+    const std::vector<ServerConfig> &serverConfigs = configParser.getServers();
+    try {
+        configValidator.validateServers(serverConfigs);
+    } catch (const std::exception &e) {
+        throw std::runtime_error(std::string("Error en configuración: ") + e.what());
+    }
     // Cargar configuración con ConfigParser
-    // Aquí solo hacemos un ejemplo con servidores en puertos 9090 y 9091
-    servers.push_back(ServerSocket(9090));
-    servers.push_back(ServerSocket(9091));
+    for (size_t i = 0; i < serverConfigs.size(); i++) {
+        servers.push_back(ServerSocket(serverConfigs[i]));
+    }
 
     // Configurar polling para servidores
     for (size_t i = 0; i < servers.size(); i++) {
@@ -176,8 +184,8 @@ void ServerManager::handleClientEvent(int clientIndex) {
 				//client.makeResponse(servers);								// Add server configuration here // Working on it
 				//std::string response = client.getResponseBuffer();
 			    // Generar respuesta según el método HTTP
-			    std::string method = client.getMethod();
-			    std::string path = client.getPath();
+			    std::string method = client.getRequest().getMethod();
+			    std::string path = client.getRequest().getPath();
 			    std::string body;
 			    std::string response;
 			

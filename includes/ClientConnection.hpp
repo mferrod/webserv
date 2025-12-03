@@ -1,6 +1,7 @@
 #pragma once
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "ServerSocket.hpp"
 #include <string>
 #include <map>
 #include <unistd.h>
@@ -15,15 +16,7 @@ class ClientConnection {
 		size_t _response_offset;
 		bool _parsed;
 		HttpRequest _request;
-		HttpResponse _response;
-
-		/* std::string _method;
-		std::string _path;
-		std::string _version;
-		std::map<std::string, std::string> _headers;
-		std::string _body; */
-
-		
+		HttpResponse _response;		
 	public:
 		ClientConnection(int fd);
 		~ClientConnection();
@@ -34,13 +27,12 @@ class ClientConnection {
 		bool isResponseSent() const { return _response_sent; }
 		int getFd() const { return _fd; }
 		const std::string& getBuffer() const { return _buffer; }
-		bool parseRequest(const ServerConfig &serverConfig);
-		const std::string& getMethod() const { return _method; }
-		const std::string& getPath() const { return _path; }
-		const std::string& getVersion() const { return _version; }
+		bool parseRequest();
 		bool isParsed() const { return _parsed; }
 
-		void makeResponse();
+		HttpRequest& getRequest() { return _request; }
+
+		void makeResponse(std::vector<ServerSocket> &servers);
 		const std::string& getResponseBuffer() const { return _response_buffer; }
 		
 	private:

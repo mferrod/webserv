@@ -6,6 +6,8 @@
 #include <ctime>
 #include "ServerSocket.hpp"
 #include "ClientConnection.hpp"
+#include "ConfigParser.hpp"
+#include "ConfigValidator.hpp"
 
 class ServerManager {
 private:
