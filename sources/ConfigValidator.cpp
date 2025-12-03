@@ -465,7 +465,7 @@ void ConfigValidator::validateServerConfig(ServerConfig &server) {
     }
 }
 
-void ConfigValidator::validateLocation(const Location &location, ServerConfig &serverConfig) {
+void ConfigValidator::validateLocation(Location &location, ServerConfig &serverConfig) {
     if (location.getPath().empty()) {
         throw std::invalid_argument("Error: location path cannot be empty");
     }

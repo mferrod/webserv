@@ -109,10 +109,13 @@ void HttpResponse::readFile(const std::string &file_path)
 		return;
 	}
 	std::ostringstream ss;
+	std::ostringstream oss;
+
 	ss << file.rdbuf();
 	_body = ss.str();
 	_status_code = 200;
-	_headers["Content-Length"] = std::to_string(_body.size());
+	oss << _body.size();
+	_headers["Content-Length"] = oss.str();
 	_headers["Content-Type"] = getMimeType(file_path);
 	return;
 }
@@ -136,7 +139,9 @@ void HttpResponse::handleGet()
 			_status_code = 200;
 			_body = "<html><body><h1>Autoindex is ON - Directory listing for " + _request.getPath() + "</h1></body></html>";
 			_headers["Content-Type"] = "text/html";
-			_headers["Content-Length"] = std::to_string(_body.size());
+			std::ostringstream oss;
+			oss << _body.size();
+			_headers["Content-Length"] = oss.str();
 			return;
 		}
 		else
@@ -158,15 +163,17 @@ void HttpResponse::handleGet()
 				_status_code = 200;
 				_body = "<html><body><h1>Autoindex is ON - Directory listing for " + _request.getPath() + "</h1></body></html>";
 				_headers["Content-Type"] = "text/html";
-				_headers["Content-Length"] = std::to_string(_body.size());
+				std::ostringstream oss;
+				oss << _body.size();
+				_headers["Content-Length"] = oss.str();
 			}
 			else
 				makeErrorResponse();
 		}
 		return;
 	}
-	else
-		cgiExec(); // Not implemented yet
+	/* else
+		cgiExec(); // Not implemented yet */
 
 		
 
@@ -208,7 +215,10 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 	size_t server_index;
 	for (server_index = 0; server_index < servers.size(); server_index++)
 	{
-		if (servers[server_index].getPort() == _request.getPort())
+		int port;
+		std::stringstream ss(servers[server_index].getServerConfig().getDirective("port"));
+		ss >> port;
+		if (servers[server_index].getPort() == port)
 		{
 			if (!servers[server_index].getServerConfig().getDirective("server_name").empty() 
 			&& servers[server_index].getServerConfig().getDirective("server_name") != _request.getHost())
@@ -280,9 +290,13 @@ void HttpResponse::makeErrorResponse()
 {
 	_status_code = _request.getStatusCode();
 	_reason = getReason();
-	_body = "<html><body><h1>" + std::to_string(_status_code) + " " + _reason + "</h1></body></html>";
+	std::ostringstream ss;
+	ss << _status_code;
+	_body = "<html><body><h1>" + ss.str() + " " + _reason + "</h1></body></html>";
 	_headers["Content-Type"] = "text/html";
-	_headers["Content-Length"] = std::to_string(_body.size());
+	std::ostringstream oss;
+	oss << _body.size();
+	_headers["Content-Length"] = oss.str();
 	_headers["Connection"] = "close";
 	return;
 }
@@ -291,7 +305,9 @@ std::string HttpResponse::buildResponse()
 {
 	std::string response;
 
-	response += "HTTP/1.1 " + std::to_string(_status_code) + " " + _reason + "\r\n";
+	std::ostringstream ss;
+	ss << _status_code;
+	response += "HTTP/1.1 " + ss.str() + " " + _reason + "\r\n";
 
 	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 	{

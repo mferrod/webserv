@@ -3,6 +3,9 @@
 #include <map>
 #include <sys/stat.h>
 #include <fstream>
+#include <vector>
+#include <iostream>
+#include <sstream>
 #include "ServerConfig.hpp" //?? Not implemented yet.
 #include "HttpRequest.hpp"
 #include "ServerSocket.hpp"

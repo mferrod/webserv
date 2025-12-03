@@ -80,6 +80,8 @@ class HttpRequest
 		std::string							&getBody() { return _body; }
 		Location							getTargetLocation() const { return _target_location; }
 		std::string							getFile() const { return _path_file; }
+		int									getPort() const { return _port; }
+		std::string							getHost() const { return _host; }
 
 		// For debugging
 		void printRequest() const {
