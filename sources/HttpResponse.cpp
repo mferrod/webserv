@@ -106,7 +106,6 @@ void HttpResponse::readFile(const std::string &file_path)
 	{
 		_status_code = 404;
 		_request.setValidRequest(false);
-		makeErrorResponse();
 		return;
 	}
 	std::ostringstream ss;
@@ -151,13 +150,18 @@ void HttpResponse::handleGet()
 	if (target_location.getDirective("cgi_processing") == "")
 	{
 		std::string full_path = target_location.getDirective("root") + "/" + _request.getPath().substr(target_location.getPath().length()) + "/" + _request.getFile();
-		readFile(full_path); // Not implemented yet
-		if (_status_code == 404 && target_location.getDirective("autoindex") == "on") // Simple autoindex implementation
+		readFile(full_path);
+		if (_status_code == 404)
 		{
-			_status_code = 200;
-			_body = "<html><body><h1>Autoindex is ON - Directory listing for " + _request.getPath() + "</h1></body></html>";
-			_headers["Content-Type"] = "text/html";
-			_headers["Content-Length"] = std::to_string(_body.size());
+			if (target_location.getDirective("autoindex") == "on") // Simple autoindex implementation
+			{
+				_status_code = 200;
+				_body = "<html><body><h1>Autoindex is ON - Directory listing for " + _request.getPath() + "</h1></body></html>";
+				_headers["Content-Type"] = "text/html";
+				_headers["Content-Length"] = std::to_string(_body.size());
+			}
+			else
+				makeErrorResponse();
 		}
 		return;
 	}
