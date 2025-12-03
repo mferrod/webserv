@@ -35,4 +35,5 @@ class HttpResponse
 		void			isAllowedMethod();
 		void			checkClientMaxBodySize();
 		void			redirection(std::string url);
+		void			readFile(const std::string &file_path);
 };

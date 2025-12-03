@@ -99,6 +99,25 @@ void HttpResponse::redirection(std::string url)
 	_status_code = 301;
 }
 
+void HttpResponse::readFile(const std::string &file_path)
+{
+	std::ifstream file(file_path.c_str());
+	if (!file.is_open())
+	{
+		_status_code = 404;
+		_request.setValidRequest(false);
+		makeErrorResponse();
+		return;
+	}
+	std::ostringstream ss;
+	ss << file.rdbuf();
+	_body = ss.str();
+	_status_code = 200;
+	_headers["Content-Length"] = std::to_string(_body.size());
+	_headers["Content-Type"] = getMimeType(file_path);
+	return;
+}
+
 void HttpResponse::handleGet()
 {
 	Location target_location = _request.getTargetLocation();
@@ -147,7 +166,7 @@ void HttpResponse::handleGet()
 
 		
 
-	struct stat file_stat;
+	/* struct stat file_stat;
 	// Check if file exists
 	if (stat(file_path.c_str(), &file_stat) < 0)
 	{
@@ -177,7 +196,7 @@ void HttpResponse::handleGet()
 	_body = body;
 	_status_code = 200;
 	_headers["Content-Length"] = std::to_string(_body.size());
-	_headers["Content-Type"] = getMimeType(file_path);
+	_headers["Content-Type"] = getMimeType(file_path); */
 }
 
 void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
