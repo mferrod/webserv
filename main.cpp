@@ -3,18 +3,15 @@
 #include "ConfigValidator.hpp"
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
+    if (argc > 2) {
         std::cerr << "Usage: " << argv[0] << " config_file" << std::endl;
         return 1;
     }
     
     try {
         ConfigParser parser;
-        
-        if (!parser.parseConfig(argv[1])) {
-            return 1;
-        }
-        
+        std::string configFile = (argc == 2) ? argv[1] : "default_config.conf";
+        parser.parseConfigFile(configFile);
         const std::vector<ServerConfig> &servers = parser.getServers();
         
         // Validar configuración
