@@ -3,8 +3,12 @@
 #include <map>
 #include <sys/stat.h>
 #include <fstream>
+#include <vector>
+#include <iostream>
+#include <sstream>
 #include "ServerConfig.hpp" //?? Not implemented yet.
 #include "HttpRequest.hpp"
+#include "ServerSocket.hpp"
 
 class HttpResponse
 {
@@ -24,7 +28,7 @@ class HttpResponse
 		HttpResponse &operator=(const HttpResponse &other);
 		~HttpResponse();
 		
-		void 			handleRequest();
+		void 			handleRequest(std::vector<ServerSocket> &servers);
 		void 			handleGet();
 		void 			handlePost();
 		void 			handleDelete();

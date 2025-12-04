@@ -1,4 +1,4 @@
-#include "ConfigParser.hpp"
+#include "../includes/ConfigParser.hpp"
 #include <iostream>
 
 ConfigParser::ConfigParser() {}
@@ -135,6 +135,6 @@ bool ConfigParser::parseConfig(const std::string &filename) {
     return true;
 }
 
-const std::vector<ServerConfig> &ConfigParser::getServers() const {
+std::vector<ServerConfig> &ConfigParser::getServers() {
     return servers;
 }

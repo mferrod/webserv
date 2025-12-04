@@ -333,7 +333,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 			std::cerr << "Invalid request: invalid path ending with a dot." << std::endl;
 			return;
 		}
-		size_t slash_pos = _path.find_first_of('/', colon_pos + 1);
+		size_t slash_pos = _path.find_first_of('/', dot_pos + 1);
 		if (slash_pos != std::string::npos)
 			_path_info = _path.substr(slash_pos);
 
@@ -588,9 +588,13 @@ void HttpRequest::checkBodySize(const ServerConfig &serverConfig) // Check value
 			}
 		}
 	}
+	catch (const std::exception &e)
+	{
+		std::cerr << "Exception checking body size: " << e.what() << std::endl;
+	}
 }
 
-void HttpRequest::parseRequest(const std::string &rawRequest, const ServerConfig &serverConfig)
+void HttpRequest::parseRequest(const std::string &rawRequest)
 {
 	HttpRequest request;
 	size_t pos = 0;
@@ -632,7 +636,6 @@ void HttpRequest::parseRequest(const std::string &rawRequest, const ServerConfig
 	{
 		std::string body = rawRequest.substr(pos);
 		parseBody(body);
-		checkBodySize(serverConfig);
 	}
 
 	return;

@@ -38,7 +38,7 @@ class HttpRequest
 
 	public:
 		
-		void parseRequest(const std::string &rawRequest, const ServerConfig &serverConfig);
+		void parseRequest(const std::string &rawRequest);
 
 		void parseRequestLine(const std::string &line);
 		void parseHeaders(const std::string &header_lines);
@@ -62,22 +62,26 @@ class HttpRequest
 		void handleGet();
 		void handlePost();
 		void handleDelete();
+
+		void checkBodySize(const ServerConfig &serverConfig);
 		
 		bool isValidRequest() const;
 		//void setStatusCode(int code) { _status_code = code; }
 
-		void setTargetLocation(const Location &location) { _target_location = location; }
+		void setTargetLocation(Location &location) { _target_location = location; }
 		void setValidRequest(bool valid) { _valid_request = valid; }
 		void setPathFile(const std::string &file) { _path_file = file; }
 
 		int									getStatusCode() const { return _status_code; }
-		std::string							&getMethod() const { return _method; }
-		std::string							&getPath() const { return _path; }
-		std::string							&getVersion() const { return _version; }
-		std::map<std::string, std::string>	&getHeaders() const { return _headers; }
-		std::string							&getBody() const { return _body; }
+		std::string							&getMethod() { return _method; }
+		std::string							&getPath() { return _path; }
+		std::string							&getVersion() { return _version; }
+		std::map<std::string, std::string>	&getHeaders() { return _headers; }
+		std::string							&getBody() { return _body; }
 		Location							getTargetLocation() const { return _target_location; }
 		std::string							getFile() const { return _path_file; }
+		int									getPort() const { return _port; }
+		std::string							getHost() const { return _host; }
 
 		// For debugging
 		void printRequest() const {

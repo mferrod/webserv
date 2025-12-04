@@ -1,4 +1,4 @@
-#include "Location.hpp"
+#include "../includes/Location.hpp"
 
 Location::Location() {}
 
@@ -8,7 +8,7 @@ void Location::setPath(const std::string &path) {
     _path = path;
 }
 
-std::string Location::getPath() const {
+std::string Location::getPath() {
     return _path;
 }
 

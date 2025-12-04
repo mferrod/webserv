@@ -1,4 +1,4 @@
-#include "ClientConnection.hpp"
+#include "../includes/ClientConnection.hpp"
 #include <iostream>
 #include <sstream>
 #include <sys/socket.h>
@@ -105,72 +105,18 @@ bool ClientConnection::sendPartialResponse() {
 	return false; // Aún hay datos por enviar
 }
 
-bool ClientConnection::parseRequest(const ServerConfig &serverConfig) {
+bool ClientConnection::parseRequest() {
     if (_parsed || !_complete) return _parsed;
     
 	_request = HttpRequest();
-	_request.parseRequest(_buffer, serverConfig);
+	_request.parseRequest(_buffer);
 	_response = HttpResponse(_request);
-
-   /*  // Separar headers y body
-    size_t headerEnd = _buffer.find("\r\n\r\n");
-    if (headerEnd == std::string::npos) {
-        std::cerr << "Request malformada, sin separador de headers" << std::endl;
-        return false;
-    }
-    
-    std::string headerSection = _buffer.substr(0, headerEnd);
-    _body = _buffer.substr(headerEnd + 4);
-    
-    // Parsear línea inicial (método, path, versión)
-    size_t firstLineEnd = headerSection.find("\r\n");
-    if (firstLineEnd == std::string::npos) {
-        std::cerr << "Primera línea HTTP malformada" << std::endl;
-        return false;
-    }
-    
-    std::string firstLine = headerSection.substr(0, firstLineEnd);
-    std::stringstream ss(firstLine);
-    
-    ss >> _method >> _path >> _version;
-    
-    // Validar que tenemos las 3 partes
-    if (_method.empty() || _path.empty() || _version.empty()) {
-        std::cerr << "Línea HTTP incompleta: " << firstLine << std::endl;
-        return false;
-    }
-    
-    std::cout << "Parseado: " << _method << " " << _path << " " << _version << std::endl;
-    
-    // Parsear headers línea por línea
-    size_t pos = firstLineEnd + 2;
-    while (pos < headerSection.size()) {
-        size_t lineEnd = headerSection.find("\r\n", pos);
-        if (lineEnd == std::string::npos) break;
-        
-        std::string line = headerSection.substr(pos, lineEnd - pos);
-        size_t colon = line.find(":");
-        
-        if (colon != std::string::npos) {
-            std::string key = line.substr(0, colon);
-            std::string value = line.substr(colon + 1);
-            
-            // Limpiar espacios
-            key.erase(key.find_last_not_of(" \t\r\n") + 1);
-            value.erase(0, value.find_first_not_of(" \t"));
-            value.erase(value.find_last_not_of(" \t\r\n") + 1);
-            
-            _headers[key] = value;
-        }
-        
-        pos = lineEnd + 2;
-    } */
     
     _parsed = true;
     return true;
 }
 
 void ClientConnection::makeResponse(std::vector<ServerSocket> &servers) {
-	_response.handleRequest(std::vector<ServerSocket> &servers);
+	_response.handleRequest(servers);
 	_response_buffer = _response.buildResponse();
 }

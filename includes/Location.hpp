@@ -14,7 +14,7 @@ public:
     ~Location();
     
     void setPath(const std::string &path);
-    std::string getPath() const;
+    std::string getPath();
     
     void setDirective(const std::string &key, const std::string &value);
     std::string getDirective(const std::string &key) const;

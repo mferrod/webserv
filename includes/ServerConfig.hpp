@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
-#include "Location.hpp"
+#include "../includes/Location.hpp"
 
 class ServerConfig {
 private:
