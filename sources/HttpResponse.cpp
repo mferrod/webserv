@@ -120,6 +120,69 @@ void HttpResponse::readFile(const std::string &file_path)
 	return;
 }
 
+void HttpResponse::makeAutoindex()
+{
+	DIR *dir;
+	struct dirent *entry;
+	std::string html_page;
+	std::string path = _request.getTargetLocation().getPath();
+	std::string current_path = _request.getTargetLocation().getDirective("root") + "/" + _request.getPath().substr(_request.getTargetLocation().getPath().length());
+	std::string root_path = _request.getTargetLocation().getDirective("root");
+
+	if (path[path.length() - 1] == '/')
+		path = path.erase(path.length() - 1);
+	if (current_path[current_path.length() - 1] == '/')
+		current_path = current_path.erase(current_path.length() - 1);
+	if ((dir = opendir(current_path.c_str())) != NULL)
+	{
+		html_page = "<html><head><title>Index of " + path + "</title></head><body>";
+		std::string full_path = path + "/" + current_path.substr(root_path.length());
+		if (full_path[full_path.length() - 1] == '/')
+			full_path = full_path.erase(full_path.length() - 1);
+		html_page += "<h1>Index of " + full_path + "</h1><ul>";
+		
+		while ((entry = readdir(dir)) != NULL)
+		{
+			std::string entry_name = entry->d_name;
+			if (entry_name != "." && entry_name != "..")
+				full_path  += "/" + entry_name;
+			else
+				full_path = entry_name;
+
+			struct stat	entry_stat;
+			stat(full_path.c_str(), &entry_stat);
+			if (S_ISDIR(entry_stat.st_mode) && entry->d_type != DT_REG)
+				html_page += "<li><a href=\"" + full_path + "\">" + "\t" +entry_name + "/" + "</a></li>";
+			else if (entry->d_type == DT_REG)
+			{
+				std::string extension;
+				size_t dot_pos = entry_name.find_last_of('.');
+				if (dot_pos != std::string::npos)
+					extension = entry_name.substr(dot_pos + 1);
+				if (extension == "html") // Add more file types if implemented after cgi implementation
+					html_page += "<li><a href=\"" + full_path + "\">" + "\t" + entry_name + "</a></li>";
+				else
+					html_page += "<li>" + "\t" + entry_name + "</li>";
+			}	
+
+		}
+		html_page += "</ul></body></html>";
+		closedir(dir);
+		_status_code = 200;
+		_body.clear();
+		_body = html_page;
+		_headers["Content-Type"] = "text/html";
+		std::ostringstream oss;
+		oss << _body.size();
+		_headers["Content-Length"] = oss.str();
+	}
+	else
+	{
+		_status_code = 404;
+		makeErrorResponse();
+	}
+}
+
 void HttpResponse::handleGet()
 {
 	Location target_location = _request.getTargetLocation();
@@ -134,14 +197,9 @@ void HttpResponse::handleGet()
 	{
 		if (_request.getPath() == target_location.getPath() && target_location.getDirective("index") != "")
 			_request.setPathFile(target_location.getDirective("index"));
-		else if (target_location.getDirective("autoindex") == "on") // Simple autoindex implementation
+		else if (target_location.getDirective("autoindex") == "on")
 		{
-			_status_code = 200;
-			_body = "<html><body><h1>Autoindex is ON - Directory listing for " + _request.getPath() + "</h1></body></html>";
-			_headers["Content-Type"] = "text/html";
-			std::ostringstream oss;
-			oss << _body.size();
-			_headers["Content-Length"] = oss.str();
+			makeAutoindex();
 			return;
 		}
 		else
@@ -158,14 +216,10 @@ void HttpResponse::handleGet()
 		readFile(full_path);
 		if (_status_code == 404)
 		{
-			if (target_location.getDirective("autoindex") == "on") // Simple autoindex implementation
+			if (target_location.getDirective("autoindex") == "on")
 			{
-				_status_code = 200;
-				_body = "<html><body><h1>Autoindex is ON - Directory listing for " + _request.getPath() + "</h1></body></html>";
-				_headers["Content-Type"] = "text/html";
-				std::ostringstream oss;
-				oss << _body.size();
-				_headers["Content-Length"] = oss.str();
+				makeAutoindex();
+				return;
 			}
 			else
 				makeErrorResponse();
