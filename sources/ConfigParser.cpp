@@ -112,7 +112,8 @@ void ConfigParser::parseLocation(std::ifstream &file, ServerConfig &server, cons
 }
 
 bool ConfigParser::parseConfig(const std::string &filename) {
-    std::ifstream file(filename.c_str());
+    std::string file_path = "./configs/" + filename;
+    std::ifstream file(file_path.c_str());
     
     if (!file.is_open()) {
         std::cerr << "Error: could not open config file: " << filename << std::endl;

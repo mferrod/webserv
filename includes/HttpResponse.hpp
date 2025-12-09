@@ -6,6 +6,7 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
+#include <dirent.h>
 #include "ServerConfig.hpp" //?? Not implemented yet.
 #include "HttpRequest.hpp"
 #include "ServerSocket.hpp"

@@ -160,9 +160,9 @@ void HttpResponse::makeAutoindex()
 				if (dot_pos != std::string::npos)
 					extension = entry_name.substr(dot_pos + 1);
 				if (extension == "html") // Add more file types if implemented after cgi implementation
-					html_page += "<li><a href=\"" + full_path + "\">" + "\t" + entry_name + "</a></li>";
+					html_page += "<li><a href=\"" + full_path + "\">" + "    " + entry_name + "</a></li>";
 				else
-					html_page += "<li>" + "\t" + entry_name + "</li>";
+					html_page += "<li>    " + entry_name + "</li>";
 			}	
 
 		}

@@ -45,8 +45,9 @@ void ConfigValidator::initializeValidLocationDirectives() {
     _validLocationDirectives.push_back("upload_dir");
     _validLocationDirectives.push_back("client_max_body_size");
     _validLocationDirectives.push_back("error_page");
-    _validLocationDirectives.push_back("redirect");
+    _validLocationDirectives.push_back("redirect"); // ¿Redirect or rewrite?
     _validLocationDirectives.push_back("return");
+    _validLocationDirectives.push_back("cgi_ext");
 }
 
 bool ConfigValidator::isValidPort(int port) const {
@@ -73,8 +74,11 @@ bool ConfigValidator::isValidPath(const std::string &path) const {
     // Verificar caracteres válidos en path
     for (size_t i = 0; i < path.length(); ++i) {
         char c = path[i];
-        if (!isalnum(c) && c != '/' && c != '_' && c != '-' && c != '.' && c != '~')
+        if (!isalnum(c) && c != '/' && c != '_' && c != '-' && c != '.' && c != '~' && c != ' ') // Añadido espacio para evitar erro en cgi_path
+        {
+            //std::cout << "Invalid character in path: " << c << std::endl;
             return false;
+        }
     }
     return true;
 }
@@ -381,6 +385,7 @@ void ConfigValidator::validateReturn(const std::string &value) {
     // Validar código
     std::istringstream codeIss(codeStr);
     int code;
+    //std::cout << "Validating return code: " << codeStr << std::endl;
     if (!(codeIss >> code) || !codeIss.eof()) {
         throw std::invalid_argument("Error: return code must be a number");
     }
@@ -438,7 +443,10 @@ void ConfigValidator::validateDirective(const std::string &key, const std::strin
     else if (key == "redirect")
         validateRedirect(value);
     else if (key == "return")
+    {
+        //std::cout << "Validating return directive: " << value << std::endl;
         validateReturn(value);
+    }
 }
 
 void ConfigValidator::validateServerConfig(ServerConfig &server) {

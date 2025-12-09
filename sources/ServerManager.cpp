@@ -25,9 +25,9 @@ ServerManager::ServerManager(const std::string &configPath) {
     // Configurar polling para servidores
     for (size_t i = 0; i < servers.size(); i++) {
         if (!servers[i].bind() || !servers[i].listen()) {
-            std::cerr << "Error en bind en puerto " << servers[i].getPort() << ": " << strerror(errno) << std::endl;
+            std::cerr << "Error en bind en puerto " << servers[i].getServerConfig().getDirective("listen") << ": " << strerror(errno) << std::endl;
             std::stringstream ss;
-            ss << "No se pudo iniciar servidor en puerto " << servers[i].getPort();
+            ss << "No se pudo iniciar servidor en puerto " << servers[i].getServerConfig().getDirective("listen");
             throw std::runtime_error(ss.str());
         }
         
@@ -42,8 +42,7 @@ ServerManager::ServerManager(const std::string &configPath) {
         pfd.events = POLLIN;
         pfd.revents = 0;
         poll_fds.push_back(pfd);
-        
-        std::cout << "Servidor iniciado en puerto " << servers[i].getPort() << std::endl;
+        std::cout << "Servidor iniciado en puerto " << servers[i].getServerConfig().getDirective("listen") << std::endl;
     }
     std::cout << "Todos los servidores iniciados y escuchando..." << std::endl;
 }
