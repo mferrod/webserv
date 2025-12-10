@@ -48,6 +48,7 @@ ServerManager::ServerManager(const std::string &configPath) {
 }
 
 void ServerManager::run() {
+    std::cout << "Entrando al bucle principal del servidor..." << std::endl;
     while (true) {
         // Timeout de 1 segundo para poll
         int ready = poll(&poll_fds[0], poll_fds.size(), 1000);
@@ -69,6 +70,7 @@ void ServerManager::run() {
                 // Verificar si es un servidor o cliente
                 if (fd_to_server_index.find(poll_fds[i].fd) != fd_to_server_index.end()) {
                     // Es un servidor, nueva conexión
+                    std::cout << "Nueva conexión entrante en FD: " << poll_fds[i].fd << std::endl;
                     acceptNewConnection(poll_fds[i].fd);
                 } else {
                     // Es un cliente, encontrar su índice

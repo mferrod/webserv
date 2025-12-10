@@ -101,9 +101,9 @@ void HttpResponse::redirection(std::string url)
 
 void HttpResponse::readFile(const std::string &file_path)
 {
-	std::cout << "Attempting to read file: " << file_path << std::endl;
+	//std::cout << "Attempting to read file: " << file_path << std::endl;
 	std::ifstream file(file_path.c_str());
-	std::cerr << "Reading file: " << file_path << std::endl;
+	//std::cerr << "Reading file: " << file_path << std::endl;
 	if (!file.is_open())
 	{
 		_status_code = 404;
@@ -202,8 +202,8 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 			if (server_config.getDirective("index").empty() == false)
 			{
 				_request.setPathFile(server_config.getDirective("index"));
-				std::cout << "Using server index file: " << server_config.getDirective("index") << std::endl;
-				std::cout << "Request path file: " << _request.getFile() << std::endl;
+				//std::cout << "Using server index file: " << server_config.getDirective("index") << std::endl;
+				//std::cout << "Request path file: " << _request.getFile() << std::endl;
 			}
 
 			else
@@ -233,8 +233,12 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 	if (target_location.getDirective("cgi_processing") == "")
 	{
 		std::string full_path;
-		if (server_config.getDirective("root") == "/") // Intento de solucionar problema con ruta
+		//std::cout << "Server root directive: " << server_config.getDirective("root") << std::endl;
+		if (server_config.getDirective("root") == "./") // Intento de solucionar problema con ruta
+		{
 			full_path = _request.getFile();
+			//std::cout << "Server root is '/', using file path directly: " << full_path << std::endl;
+		}	
 		else
 			full_path = target_location.getDirective("root") + "/" + _request.getPath().substr(target_location.getPath().length()) + "/" + _request.getFile();
 		readFile(full_path);
