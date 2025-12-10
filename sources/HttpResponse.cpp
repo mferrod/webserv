@@ -101,7 +101,9 @@ void HttpResponse::redirection(std::string url)
 
 void HttpResponse::readFile(const std::string &file_path)
 {
+	std::cout << "Attempting to read file: " << file_path << std::endl;
 	std::ifstream file(file_path.c_str());
+	std::cerr << "Reading file: " << file_path << std::endl;
 	if (!file.is_open())
 	{
 		_status_code = 404;
@@ -183,7 +185,7 @@ void HttpResponse::makeAutoindex()
 	}
 }
 
-void HttpResponse::handleGet()
+void HttpResponse::handleGet(const ServerConfig &server_config)
 {
 	Location target_location = _request.getTargetLocation();
 	if (!target_location.getDirective("rewrite").empty())
@@ -195,8 +197,26 @@ void HttpResponse::handleGet()
 
 	if (_request.getFile().empty())
 	{
-		if (_request.getPath() == target_location.getPath() && target_location.getDirective("index") != "")
+		if (target_location.getDirective("index") == "")
+		{
+			if (server_config.getDirective("index").empty() == false)
+			{
+				_request.setPathFile(server_config.getDirective("index"));
+				std::cout << "Using server index file: " << server_config.getDirective("index") << std::endl;
+				std::cout << "Request path file: " << _request.getFile() << std::endl;
+			}
+
+			else
+			{
+				_status_code = 404;
+				makeErrorResponse();
+				return;
+			}
+		}
+		else if (_request.getPath() == target_location.getPath() && target_location.getDirective("index") != "")
+		{
 			_request.setPathFile(target_location.getDirective("index"));
+		}
 		else if (target_location.getDirective("autoindex") == "on")
 		{
 			makeAutoindex();
@@ -212,7 +232,11 @@ void HttpResponse::handleGet()
 
 	if (target_location.getDirective("cgi_processing") == "")
 	{
-		std::string full_path = target_location.getDirective("root") + "/" + _request.getPath().substr(target_location.getPath().length()) + "/" + _request.getFile();
+		std::string full_path;
+		if (server_config.getDirective("root") == "/") // Intento de solucionar problema con ruta
+			full_path = _request.getFile();
+		else
+			full_path = target_location.getDirective("root") + "/" + _request.getPath().substr(target_location.getPath().length()) + "/" + _request.getFile();
 		readFile(full_path);
 		if (_status_code == 404)
 		{
@@ -270,13 +294,13 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 	for (server_index = 0; server_index < servers.size(); server_index++)
 	{
 		int port;
-		std::stringstream ss(servers[server_index].getServerConfig().getDirective("port"));
+		std::stringstream ss(servers[server_index].getServerConfig().getDirective("listen"));
 		ss >> port;
 		if (servers[server_index].getPort() == port)
 		{
-			if (!servers[server_index].getServerConfig().getDirective("server_name").empty() 
+			/* if (!servers[server_index].getServerConfig().getDirective("server_name").empty() 
 			&& servers[server_index].getServerConfig().getDirective("server_name") != _request.getHost())
-				continue;
+				continue; */
 			//if //Check client ip against host configuration
 			break;
 		}
@@ -289,7 +313,7 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 	{
 		if (_request.getMethod() == "GET") // Check method implementation
 		{
-			handleGet();
+			handleGet(servers[server_index].getServerConfig());
 		}
 		//Pending implementation
 		/* else if (_request.getMethod() == "POST")
@@ -311,6 +335,9 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 	{
 		makeErrorResponse();
 	}
+	std::cout << "Response built with status code: " << _status_code << std::endl;
+	std::cout << "Response body size: " << _body.size() << " bytes" << std::endl;
+	std::cout << "Response body: " << std::endl << _body << std::endl;
 }
 
 std::string HttpResponse::getReason()

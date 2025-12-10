@@ -180,10 +180,10 @@ void ServerManager::handleClientEvent(int clientIndex) {
                 }
             }
 			if (poll_fds[i].revents & POLLOUT) {
-				//client.makeResponse(servers);								// Add server configuration here // Working on it
-				//std::string response = client.getResponseBuffer();
+				client.makeResponse(servers);								// Add server configuration here // Working on it
+				std::string response = client.getResponseBuffer();
 			    // Generar respuesta según el método HTTP
-			    std::string method = client.getRequest().getMethod();
+			    /* std::string method = client.getRequest().getMethod();
 			    std::string path = client.getRequest().getPath();
 			    std::string body;
 			    std::string response;
@@ -213,10 +213,10 @@ void ServerManager::handleClientEvent(int clientIndex) {
 			            removeClient(clientIndex);
 			        }
 			        break;
-			    }
+			    } */
 			
 			    // Para métodos válidos (GET, POST, DELETE)
-			    std::stringstream ss;
+			    /* std::stringstream ss;
 			    ss << body.length();
 			    response = 
 			        "HTTP/1.1 200 OK\r\n"
@@ -224,7 +224,7 @@ void ServerManager::handleClientEvent(int clientIndex) {
 			        "Content-Length: " + ss.str() + "\r\n"
 			        "Connection: close\r\n"
 			        "\r\n" + body;
-
+*/
 			    if (client.sendResponse(response)) {
 			        removeClient(clientIndex);
 			    } else {

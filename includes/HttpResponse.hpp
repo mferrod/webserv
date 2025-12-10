@@ -30,7 +30,7 @@ class HttpResponse
 		~HttpResponse();
 		
 		void 			handleRequest(std::vector<ServerSocket> &servers);
-		void 			handleGet();
+		void 			handleGet(const ServerConfig &server_config);
 		void 			handlePost();
 		void 			handleDelete();
 		void 			makeErrorResponse();
