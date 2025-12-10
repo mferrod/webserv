@@ -339,9 +339,9 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 	{
 		makeErrorResponse();
 	}
-	std::cout << "Response built with status code: " << _status_code << std::endl;
-	std::cout << "Response body size: " << _body.size() << " bytes" << std::endl;
-	std::cout << "Response body: " << std::endl << _body << std::endl;
+	//std::cout << "Response built with status code: " << _status_code << std::endl;
+	//std::cout << "Response body size: " << _body.size() << " bytes" << std::endl;
+	//std::cout << "Response body: " << std::endl << _body << std::endl;
 }
 
 std::string HttpResponse::getReason()

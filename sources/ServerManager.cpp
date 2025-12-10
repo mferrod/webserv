@@ -48,7 +48,7 @@ ServerManager::ServerManager(const std::string &configPath) {
 }
 
 void ServerManager::run() {
-    std::cout << "Entrando al bucle principal del servidor..." << std::endl;
+    //std::cout << "Entrando al bucle principal del servidor..." << std::endl;
     while (true) {
         // Timeout de 1 segundo para poll
         int ready = poll(&poll_fds[0], poll_fds.size(), 1000);
