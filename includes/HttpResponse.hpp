@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <dirent.h>
+#include <unistd.h>
 #include "ServerConfig.hpp" //?? Not implemented yet.
 #include "HttpRequest.hpp"
 #include "ServerSocket.hpp"
@@ -32,7 +33,7 @@ class HttpResponse
 		void 			handleRequest(std::vector<ServerSocket> &servers);
 		void 			handleGet(const ServerConfig &server_config);
 		void 			handlePost();
-		void 			handleDelete();
+	void 			handleDelete(const ServerConfig &server_config);
 		void 			makeErrorResponse();
 		std::string 	getReason();
 		std::string 	buildResponse();

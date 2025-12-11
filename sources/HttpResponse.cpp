@@ -1,4 +1,5 @@
 #include "../includes/HttpResponse.hpp"
+#include <unistd.h>
 
 HttpResponse::HttpResponse()
 {
@@ -292,6 +293,98 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 	_headers["Content-Type"] = getMimeType(file_path); */
 }
 
+void HttpResponse::handleDelete(const ServerConfig &server_config)
+{
+	Location target_location = _request.getTargetLocation();
+	
+	// Check if redirection is configured
+	if (!target_location.getDirective("rewrite").empty())
+	{
+		redirection(target_location.getDirective("rewrite"));
+		makeErrorResponse();
+		return;
+	}
+
+	// Construir la ruta completa al recurso
+	std::string full_path;
+	std::string root = target_location.getDirective("root");
+	std::string relative_path = _request.getPath();
+	
+	// Si el root de la location está vacío, usar el root del servidor
+	if (root.empty())
+		root = server_config.getDirective("root");
+	
+	// Eliminar la barra inicial del path si está presente
+	if (!relative_path.empty() && relative_path[0] == '/')
+		relative_path = relative_path.substr(1);
+	
+	// Manejar la ruta root
+	if (root.empty() || root == "/")
+		full_path = "/" + relative_path;
+	else
+	{
+		// Eliminar barra final del root (pero mantener "./" tal cual)
+		if (root.length() > 2 && root[root.length() - 1] == '/')
+			root = root.substr(0, root.length() - 1);
+		
+		// Construir la ruta completa al recurso
+		if (!relative_path.empty())
+		{
+			if (root == ".")
+				full_path = "./" + relative_path;
+			else if (root == "./")
+				full_path = root + relative_path;
+			else
+				full_path = root + "/" + relative_path;
+		}
+		else
+			full_path = root;
+	}
+
+	// Verificamos si el recurso existe
+	struct stat file_stat;
+	if (stat(full_path.c_str(), &file_stat) != 0)
+	{
+		_status_code = 404;
+		makeErrorResponse();
+		return;
+	}
+
+	// Verificamos si es un directorio
+	if (S_ISDIR(file_stat.st_mode))
+	{
+		// Devolvemos 403 Forbidden para directorios
+		_status_code = 403;
+		makeErrorResponse();
+		return;
+	}
+
+	// Verificamos si tenemos permisos de escritura
+	if (access(full_path.c_str(), W_OK) != 0)
+	{
+		_status_code = 403;
+		makeErrorResponse();
+		return;
+	}
+
+	// Intentar eliminar el archivo
+	if (remove(full_path.c_str()) != 0)
+	{
+		// Si al borrarfalla, devolver 500
+		_status_code = 500;
+		makeErrorResponse();
+		return;
+	}
+
+	// Archivo eliminado correctamente
+	// Devolver 204 No Content (estándar para DELETE exitoso sin cuerpo de respuesta)
+	_status_code = 204;
+	_reason = getReason();
+	_body.clear();
+	_headers["Content-Length"] = "0";
+	_headers["Connection"] = "close";
+}
+
 void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 {
 	size_t server_index;
@@ -319,15 +412,14 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 		{
 			handleGet(servers[server_index].getServerConfig());
 		}
-		//Pending implementation
 		/* else if (_request.getMethod() == "POST")
 		{
 			handlePost();
-		}
+		} */
 		else if (_request.getMethod() == "DELETE")
 		{
-			handleDelete();
-		} */
+			handleDelete(servers[server_index].getServerConfig());
+		}
 
 
 		/* else //Necessary?
@@ -355,6 +447,7 @@ std::string HttpResponse::getReason()
 		case 300: return "Multiple Choices";
 		case 301: return "Moved Permanently";
 		case 400: return "Bad Request";
+		case 403: return "Forbidden";
 		case 404: return "Not Found";
 		case 405: return "Method Not Allowed";
 		case 408: return "Request Timeout";
@@ -373,7 +466,10 @@ std::string HttpResponse::getReason()
 
 void HttpResponse::makeErrorResponse()
 {
-	_status_code = _request.getStatusCode();
+	// If _status_code is already set (e.g., by handleDelete), use it
+	// Otherwise, get it from the request
+	if (_status_code == 0 || _status_code == 200)
+		_status_code = _request.getStatusCode();
 	_reason = getReason();
 	std::ostringstream ss;
 	ss << _status_code;
