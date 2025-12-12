@@ -120,6 +120,8 @@ void HttpResponse::readFile(const std::string &file_path)
 	oss << _body.size();
 	_headers["Content-Length"] = oss.str();
 	_headers["Content-Type"] = getMimeType(file_path);
+	_headers["Connection"] = "close"; // Close connection or keep-alive?
+	file.close();
 	return;
 }
 
@@ -184,6 +186,7 @@ void HttpResponse::makeAutoindex()
 		_status_code = 404;
 		makeErrorResponse();
 	}
+	return;
 }
 
 void HttpResponse::handleGet(const ServerConfig &server_config)
@@ -251,46 +254,65 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 				return;
 			}
 			else
+			{
 				makeErrorResponse();
+				return;
+			}
 		}
 		return;
 	}
 	/* else
 		cgiExec(); // Not implemented yet */
+}
 
-		
-
-	/* struct stat file_stat;
-	// Check if file exists
-	if (stat(file_path.c_str(), &file_stat) < 0)
+void HttpResponse::handlePost()
+{
+	if (_request.getBody().empty())
 	{
-		_status_code = 404;
+		_status_code = 400;
+		_request.setValidRequest(false);
 		makeErrorResponse();
 		return;
 	}
-	// Check if it's a regular file
-	if (!S_ISREG(file_stat.st_mode))
+	std::string filename = "upload_" + std::to_string(std::time(0)) + ".txt";
+	Location target_location = _request.getTargetLocation();
+	std::string filepath;
+	if (target_location.getDirective("upload_dir") != "")
 	{
-		_status_code = 403;
-		makeErrorResponse();
-		return;
+		std::string upload_path = target_location.getDirective("upload_dir");
+		if (upload_path[upload_path.length() - 1] != '/')
+			upload_path += "/";
+		filepath = upload_path + filename;
 	}
+	else
+		filepath = "./uploads/" + filename;
 
-	// Open and read file
-	std::ifstream file(file_path.c_str(), std::ios::binary);
+	std::ofstream file(filepath.c_str(), std::ios::binary);
 	if (!file.is_open())
 	{
 		_status_code = 500;
+		_request.setValidRequest(false);
 		makeErrorResponse();
 		return;
 	}
-	std::string body;
-	body.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	file << _request.getBody();
 	file.close();
-	_body = body;
-	_status_code = 200;
-	_headers["Content-Length"] = std::to_string(_body.size());
-	_headers["Content-Type"] = getMimeType(file_path); */
+	_status_code = 201;
+
+	std::ostringstream body_ss;
+	body_ss << "<html><body><h1>File uploaded successfully</h1>";
+	body_ss << "<p>Filename: " << filename << "</p>";
+	body_ss << "</body></html>";
+	_body = body_ss.str();
+	_headers["Content-Type"] = "text/html";
+	std::ostringstream oss;
+	oss << _body.size();
+	_headers["Content-Length"] = oss.str();
+	_headers["Connection"] = "close"; // Close connection or keep-alive?
+	return;
+	// Add multipart/form-data support?
+	// Add cgi processing for post?
+	// Validate content-type header?
 }
 
 void HttpResponse::handleDelete(const ServerConfig &server_config)
@@ -412,16 +434,14 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 		{
 			handleGet(servers[server_index].getServerConfig());
 		}
-		/* else if (_request.getMethod() == "POST")
+		else if (_request.getMethod() == "POST")
 		{
 			handlePost();
-		} */
+		}
 		else if (_request.getMethod() == "DELETE")
 		{
 			handleDelete(servers[server_index].getServerConfig());
 		}
-
-
 		/* else //Necessary?
 		{
 			makeErrorResponse();
