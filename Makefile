@@ -13,6 +13,7 @@ SRCS = 	sources/main.cpp \
 		sources/ServerConfig.cpp \
 		sources/Location.cpp \
 		sources/HttpResponse.cpp \
+		sources/CGI.cpp 
 
 OBJS = $(SRCS:.cpp=.o)
 

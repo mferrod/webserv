@@ -186,9 +186,93 @@ void HttpResponse::makeAutoindex()
 	}
 }
 
+void HttpResponse::handleCGI() {
+	std::cout << "\n[Response] Procesando request CGI..." << std::endl;
+	
+	// Crear objeto CGI con el request y la location
+	CGI cgi(_request, _request.getTargetLocation());
+	
+	// Ejecutar el CGI
+	if (!cgi.execute()) {
+		std::cerr << "[Response] Error ejecutando CGI" << std::endl;
+		_status_code = cgi.getStatusCode();
+		makeErrorResponse();
+		return;
+	}
+	
+	// Obtener la salida del CGI
+	std::string cgi_output = cgi.getOutput();
+	
+	// Verificar si el CGI devolvió headers propios
+	size_t header_end = cgi_output.find("\r\n\r\n");
+	
+	if (header_end != std::string::npos) {
+		// El CGI generó headers completos (Content-Type, etc)
+		std::string cgi_headers = cgi_output.substr(0, header_end);
+		std::string cgi_body = cgi_output.substr(header_end + 4);
+		
+		// Parsear los headers del CGI
+		std::istringstream header_stream(cgi_headers);
+		std::string line;
+		
+		while (std::getline(header_stream, line)) {
+			// Eliminar \r si existe
+			if (!line.empty() && line[line.length() - 1] == '\r') {
+				line = line.substr(0, line.length() - 1);
+			}
+			
+			if (line.empty()) continue;
+			
+			size_t colon = line.find(':');
+			if (colon != std::string::npos) {
+				std::string key = line.substr(0, colon);
+				std::string value = line.substr(colon + 1);
+				
+				// Trim spaces
+				size_t start = value.find_first_not_of(" \t\r\n");
+				size_t end = value.find_last_not_of(" \t\r\n");
+				if (start != std::string::npos) {
+					value = value.substr(start, end - start + 1);
+				}
+				
+				_headers[key] = value;
+			}
+		}
+		
+		_body = cgi_body;
+		_status_code = 200;
+		
+		// Asegurar que tenemos Content-Length
+		if (_headers.find("Content-Length") == _headers.end()) {
+			std::ostringstream ss;
+			ss << _body.size();
+			_headers["Content-Length"] = ss.str();
+		}
+	} else {
+		// El CGI solo devolvió el body, añadir headers nosotros
+		_body = cgi_output;
+		_status_code = 200;
+		_headers["Content-Type"] = "text/html";
+		std::ostringstream ss;
+		ss << _body.size();
+		_headers["Content-Length"] = ss.str();
+	}
+	
+	_reason = getReason();
+	std::cout << "[Response] CGI procesado exitosamente" << std::endl;
+}
+
 void HttpResponse::handleGet(const ServerConfig &server_config)
 {
 	Location target_location = _request.getTargetLocation();
+	
+	//comprobar si tiene cgi_path
+	if (!target_location.getDirective("cgi_path").empty()) {
+		std::cout << "[Response] Detectado CGI por cgi_path presente" << std::endl;
+		handleCGI();
+		return;
+	}
+
 	if (!target_location.getDirective("rewrite").empty())
 	{
 		redirection(target_location.getDirective("rewrite"));

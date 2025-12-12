@@ -11,6 +11,7 @@
 #include "ServerConfig.hpp" //?? Not implemented yet.
 #include "HttpRequest.hpp"
 #include "ServerSocket.hpp"
+#include "CGI.hpp"
 
 class HttpResponse
 {
@@ -43,4 +44,5 @@ class HttpResponse
 		void			redirection(std::string url);
 		void			readFile(const std::string &file_path);
 		void			makeAutoindex();
+		void			handleCGI();
 };
