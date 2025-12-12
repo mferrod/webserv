@@ -565,10 +565,17 @@ void HttpRequest::parseBody(const std::string &body)
 	}
 	else if (_headers.find("Content-Length") == _headers.end())
 	{
-		_valid_request = false;
-		_status_code = 411;
-		std::cerr << "Invalid request: missing Content-Length." << std::endl;
-		return;
+		// Only POST and PUT require Content-Length header
+		// GET, DELETE, and other methods without body can omit it
+		if (_method == "POST" || _method == "PUT")
+		{
+			_valid_request = false;
+			_status_code = 411;
+			std::cerr << "Invalid request: missing Content-Length." << std::endl;
+			return;
+		}
+		// For methods without body requirement (GET, DELETE), empty body is acceptable
+		_body = "";
 	}
 }
 

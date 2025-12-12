@@ -25,9 +25,9 @@ ServerManager::ServerManager(const std::string &configPath) {
     // Configurar polling para servidores
     for (size_t i = 0; i < servers.size(); i++) {
         if (!servers[i].bind() || !servers[i].listen()) {
-            std::cerr << "Error en bind en puerto " << servers[i].getPort() << ": " << strerror(errno) << std::endl;
+            std::cerr << "Error en bind en puerto " << servers[i].getServerConfig().getDirective("listen") << ": " << strerror(errno) << std::endl;
             std::stringstream ss;
-            ss << "No se pudo iniciar servidor en puerto " << servers[i].getPort();
+            ss << "No se pudo iniciar servidor en puerto " << servers[i].getServerConfig().getDirective("listen");
             throw std::runtime_error(ss.str());
         }
         
@@ -42,13 +42,13 @@ ServerManager::ServerManager(const std::string &configPath) {
         pfd.events = POLLIN;
         pfd.revents = 0;
         poll_fds.push_back(pfd);
-        
-        std::cout << "Servidor iniciado en puerto " << servers[i].getPort() << std::endl;
+        std::cout << "Servidor iniciado en puerto " << servers[i].getServerConfig().getDirective("listen") << std::endl;
     }
     std::cout << "Todos los servidores iniciados y escuchando..." << std::endl;
 }
 
 void ServerManager::run() {
+    //std::cout << "Entrando al bucle principal del servidor..." << std::endl;
     while (true) {
         // Timeout de 1 segundo para poll
         int ready = poll(&poll_fds[0], poll_fds.size(), 1000);
@@ -70,6 +70,7 @@ void ServerManager::run() {
                 // Verificar si es un servidor o cliente
                 if (fd_to_server_index.find(poll_fds[i].fd) != fd_to_server_index.end()) {
                     // Es un servidor, nueva conexión
+                    std::cout << "Nueva conexión entrante en FD: " << poll_fds[i].fd << std::endl;
                     acceptNewConnection(poll_fds[i].fd);
                 } else {
                     // Es un cliente, encontrar su índice
@@ -181,10 +182,10 @@ void ServerManager::handleClientEvent(int clientIndex) {
                 }
             }
 			if (poll_fds[i].revents & POLLOUT) {
-				//client.makeResponse(servers);								// Add server configuration here // Working on it
-				//std::string response = client.getResponseBuffer();
+				client.makeResponse(servers);								// Add server configuration here // Working on it
+				std::string response = client.getResponseBuffer();
 			    // Generar respuesta según el método HTTP
-			    std::string method = client.getRequest().getMethod();
+			    /* std::string method = client.getRequest().getMethod();
 			    std::string path = client.getRequest().getPath();
 			    std::string body;
 			    std::string response;
@@ -214,10 +215,10 @@ void ServerManager::handleClientEvent(int clientIndex) {
 			            removeClient(clientIndex);
 			        }
 			        break;
-			    }
+			    } */
 			
 			    // Para métodos válidos (GET, POST, DELETE)
-			    std::stringstream ss;
+			    /* std::stringstream ss;
 			    ss << body.length();
 			    response = 
 			        "HTTP/1.1 200 OK\r\n"
@@ -225,7 +226,7 @@ void ServerManager::handleClientEvent(int clientIndex) {
 			        "Content-Length: " + ss.str() + "\r\n"
 			        "Connection: close\r\n"
 			        "\r\n" + body;
-
+*/
 			    if (client.sendResponse(response)) {
 			        removeClient(clientIndex);
 			    } else {

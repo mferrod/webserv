@@ -8,7 +8,7 @@
 
 ServerSocket::ServerSocket(const ServerConfig& serverConfig) : _fd(-1), _host(serverConfig.getDirective("host")), _server_config(serverConfig) {
 	//Parseo del puerto.
-	std::stringstream ss(serverConfig.getDirective("port"));
+	std::stringstream ss(serverConfig.getDirective("listen"));
    	ss >> _port;
 	// Crear el socket
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
