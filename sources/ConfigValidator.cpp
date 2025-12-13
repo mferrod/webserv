@@ -48,6 +48,7 @@ void ConfigValidator::initializeValidLocationDirectives() {
     _validLocationDirectives.push_back("redirect"); // ¿Redirect or rewrite?
     _validLocationDirectives.push_back("return");
     _validLocationDirectives.push_back("cgi_ext");
+    _validLocationDirectives.push_back("cgi_processing");
 }
 
 bool ConfigValidator::isValidPort(int port) const {
