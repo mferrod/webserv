@@ -110,13 +110,13 @@ bool ClientConnection::parseRequest() {
     
 	_request = HttpRequest();
 	_request.parseRequest(_buffer);
-	_response = HttpResponse(_request);
-    
+	_response = HttpResponse(_request);    
     _parsed = true;
     return true;
 }
 
 void ClientConnection::makeResponse(std::vector<ServerSocket> &servers) {
+	std::cout << "File path in request out: " << _request.getFile() << std::endl;
 	_response.handleRequest(servers);
 	_response_buffer = _response.buildResponse();
 }

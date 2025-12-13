@@ -104,24 +104,32 @@ void HttpResponse::readFile(const std::string &file_path)
 {
 	//std::cout << "Attempting to read file: " << file_path << std::endl;
 	std::ifstream file(file_path.c_str());
-	//std::cerr << "Reading file: " << file_path << std::endl;
+	std::cerr << "Reading file: " << file_path << std::endl;
 	std::string extension;
 	extension = file_path.substr(file_path.find_last_of('.') + 1);
+	
 	if (extension != "html") //Add more file types if implemented after cgi implementation
 	{
-		_status_code = 415;
+		_status_code = 200;
+		//_request.setValidRequest(false);
+		//makeErrorResponse();
+		//return;
+	}
+	if (access(file_path.c_str(), F_OK) != 0)
+	{
+		_status_code = 404;
 		_request.setValidRequest(false);
 		return;
-	}
+	}	
+	_status_code = 200;
+	std::ostringstream ss;
+	std::ostringstream oss;
 	if (!file.is_open())
 	{
 		_status_code = 404;
 		_request.setValidRequest(false);
 		return;
 	}
-	std::ostringstream ss;
-	std::ostringstream oss;
-
 	ss << file.rdbuf();
 	_body = ss.str();
 	_status_code = 200;
@@ -189,9 +197,10 @@ void HttpResponse::makeAutoindex()
 		oss << _body.size();
 		_headers["Content-Length"] = oss.str();
 	}
-	else
+	else if (_request.isValidRequest())
 	{
 		_status_code = 404;
+		_request.setValidRequest(false);
 		makeErrorResponse();
 	}
 	return;
@@ -276,13 +285,6 @@ void HttpResponse::handleCGI() {
 void HttpResponse::handleGet(const ServerConfig &server_config)
 {
 	Location target_location = _request.getTargetLocation();
-	
-	//comprobar si tiene cgi_path
-	if (!target_location.getDirective("cgi_path").empty()) {
-		std::cout << "[Response] Detectado CGI por cgi_path presente" << std::endl;
-		handleCGI();
-		return;
-	}
 
 	if (!target_location.getDirective("rewrite").empty())
 	{
@@ -290,9 +292,10 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		makeErrorResponse();
 		return;
 	}
-
+	std::cout << "[Response] Manejo de GET para file: " << _request.getFile() << std::endl;
 	if (_request.getFile().empty())
 	{
+	
 		if (target_location.getDirective("index") == "")
 		{
 			if (server_config.getDirective("index").empty() == false)
@@ -337,8 +340,9 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		}	
 		else
 			full_path = target_location.getDirective("root") + "/" + _request.getPath().substr(target_location.getPath().length()) + "/" + _request.getFile();
+		std::cout << "[Response] Ruta completa al recurso: " << full_path << std::endl;
 		readFile(full_path);
-		if (_status_code == 404 || _status_code == 415)
+		if (_status_code == 404 || _status_code == 406)
 		{
 			if (target_location.getDirective("autoindex") == "on")
 			{
@@ -353,8 +357,12 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		}
 		return;
 	}
-	/* else
-		cgiExec(); // Not implemented yet */
+	else
+	{
+		std::cout << "[Response] Detectado CGI por cgi_processing presente" << std::endl;
+		handleCGI();
+		return;
+	}
 }
 
 void HttpResponse::handlePost()
@@ -504,6 +512,7 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 {
 	size_t server_index;
+	std::cout << "Path file: " << _request.getFile() << std::endl;
 	for (server_index = 0; server_index < servers.size(); server_index++)
 	{
 		int port;

@@ -33,6 +33,9 @@ HttpRequest::HttpRequest(const HttpRequest &other)
 	_status_code = other._status_code;
 	_port = other._port;
 	_host = other._host;
+	_path_dir = other._path_dir;
+	_path_file = other._path_file;
+	_path_info = other._path_info;
 }
 
 HttpRequest &HttpRequest::operator=(const HttpRequest &other)
@@ -50,6 +53,9 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &other)
 		_status_code = other._status_code;
 		_port = other._port;
 		_host = other._host;
+		_path_dir = other._path_dir;
+		_path_file = other._path_file;
+		_path_info = other._path_info;
 	}
 	return *this;
 }
@@ -338,6 +344,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 			_path_info = _path.substr(slash_pos);
 
 		_path = _path.substr(0, slash_pos);
+		std::cout << "Path: " << _path << std::endl;
 		if (_path.size() > 1 && _path[_path.size() - 1] == '/')
 			_path = _path.erase(_path.size() - 1);
 		
@@ -348,6 +355,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 			if (dot_pos != std::string::npos && dot_pos > slash_pos + 1)
 			{
 				_path_file = _path.substr(slash_pos + 1);
+				std::cout << "Path file: " << _path_file << std::endl;
 				if (_path.size() > _path_file.size())
 					_path_dir = _path.substr(0, slash_pos);
 			}
