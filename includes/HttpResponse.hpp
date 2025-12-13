@@ -8,6 +8,7 @@
 #include <sstream>
 #include <dirent.h>
 #include <unistd.h>
+#include <time.h>
 #include "ServerConfig.hpp" //?? Not implemented yet.
 #include "HttpRequest.hpp"
 #include "ServerSocket.hpp"

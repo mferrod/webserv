@@ -105,6 +105,14 @@ void HttpResponse::readFile(const std::string &file_path)
 	//std::cout << "Attempting to read file: " << file_path << std::endl;
 	std::ifstream file(file_path.c_str());
 	//std::cerr << "Reading file: " << file_path << std::endl;
+	std::string extension;
+	extension = file_path.substr(file_path.find_last_of('.') + 1);
+	if (extension != "html") //Add more file types if implemented after cgi implementation
+	{
+		_status_code = 415;
+		_request.setValidRequest(false);
+		return;
+	}
 	if (!file.is_open())
 	{
 		_status_code = 404;
@@ -246,7 +254,7 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		else
 			full_path = target_location.getDirective("root") + "/" + _request.getPath().substr(target_location.getPath().length()) + "/" + _request.getFile();
 		readFile(full_path);
-		if (_status_code == 404)
+		if (_status_code == 404 || _status_code == 415)
 		{
 			if (target_location.getDirective("autoindex") == "on")
 			{
@@ -274,7 +282,9 @@ void HttpResponse::handlePost()
 		makeErrorResponse();
 		return;
 	}
-	std::string filename = "upload_" + std::to_string(std::time(0)) + ".txt";
+	std::ostringstream filename_ss;
+	filename_ss << "upload_" << time(0) << ".txt";
+	std::string filename = filename_ss.str();
 	Location target_location = _request.getTargetLocation();
 	std::string filepath;
 	if (target_location.getDirective("upload_dir") != "")
