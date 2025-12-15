@@ -151,14 +151,14 @@ void HttpResponse::makeAutoindex()
 	std::string html_page;
 	std::string path = _request.getTargetLocation().getPath();
 	std::cout << "[Response] Generando autoindex para location path: " << path << std::endl;
-	std::string current_path = _request.getTargetLocation().getDirective("root") + "/" + _request.getPath().substr(_request.getTargetLocation().getPath().length());
 	std::string root_path = _request.getTargetLocation().getDirective("root");
+	std::string current_path = root_path + "/" + _request.getPath().substr(_request.getTargetLocation().getPath().length());
 
 	if (path[path.length() - 1] == '/')
 		path = path.erase(path.length() - 1);
 	if (current_path[current_path.length() - 1] == '/')
 		current_path = current_path.erase(current_path.length() - 1);
-	std::cout << "[Response] Generando autoindex para path: " << current_path << std::endl;
+	std::cout << "[Response] Generando autoindex para current_path: " << current_path << std::endl;
 	if ((dir = opendir(current_path.c_str())) != NULL)
 	{
 		html_page = "<html><head><title>Index of " + path + "</title></head><body>";
