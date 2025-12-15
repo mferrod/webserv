@@ -82,8 +82,10 @@ void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 				size++;
 		}
 		size_t match_index = _request.getPath().find(loc.getPath());
-		if (match_index != std::string::npos && (_request.getPath()[match_index + loc.getPath().length()] == '/' || match_index + loc.getPath().length() == '\0')
-		&& size > max_match)
+		if (match_index != std::string::npos && 
+		    (match_index + loc.getPath().length() == _request.getPath().length() || 
+		     _request.getPath()[match_index + loc.getPath().length()] == '/') &&
+		    size > max_match)
 		{
 			max_match = size;
 			target_location = loc;
@@ -293,6 +295,46 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		return;
 	}
 	std::cout << "[Response] Manejo de GET para file: " << _request.getFile() << std::endl;
+	
+	// Verificar si el path pedido es un directorio sin barra final
+	// Si es así, hacer redirect a path/
+	std::string requested_path = _request.getPath();
+	if (!requested_path.empty() && requested_path[requested_path.length() - 1] != '/')
+	{
+		// Construir la ruta completa para verificar
+		std::string check_path;
+		std::string root = target_location.getDirective("root");
+		if (root.empty())
+			root = server_config.getDirective("root");
+		
+		std::string relative_path = requested_path;
+		if (!target_location.getDirective("root").empty() && 
+		    relative_path.find(target_location.getPath()) == 0)
+		{
+			relative_path = relative_path.substr(target_location.getPath().length());
+		}
+		if (!relative_path.empty() && relative_path[0] == '/')
+			relative_path = relative_path.substr(1);
+		
+		if (root == "./" || root == ".")
+			check_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
+		else
+			check_path = root + "/" + relative_path;
+		
+		// Verificar si es un directorio
+		struct stat path_stat;
+		if (stat(check_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
+		{
+			// Es un directorio sin barra final - hacer redirect
+			_status_code = 301;
+			_headers["Location"] = requested_path + "/";
+			_reason = getReason();
+			_body.clear();
+			_headers["Content-Length"] = "0";
+			return;
+		}
+	}
+	
 	if (_request.getFile().empty())
 	{
 	
@@ -332,14 +374,47 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 	if (target_location.getDirective("cgi_processing") == "")
 	{
 		std::string full_path;
-		//std::cout << "Server root directive: " << server_config.getDirective("root") << std::endl;
-		if (server_config.getDirective("root") == "./") // Intento de solucionar problema con ruta
+		std::string root = target_location.getDirective("root");
+		
+		// Si location root está vacío, usar server root
+		if (root.empty())
+			root = server_config.getDirective("root");
+		
+		// Construir la ruta completa
+		std::string relative_path = _request.getPath();
+		
+		// Si la location tiene su propio root, quitar el prefijo de la location del path
+		std::string location_path = target_location.getPath();
+		if (!target_location.getDirective("root").empty() && 
+		    relative_path.find(location_path) == 0)
 		{
-			full_path = _request.getFile();
-			//std::cout << "Server root is '/', using file path directly: " << full_path << std::endl;
-		}	
+			// Quita el prefijo de la location
+			relative_path = relative_path.substr(location_path.length());
+		}
+		
+		// Si se ha solicitado un directorio (termina en /) y hay un index file
+		if (!_request.getFile().empty())
+		{
+			// Reemplazar el directorio base con el archivo index
+			size_t last_slash = relative_path.find_last_of('/');
+			if (last_slash != std::string::npos)
+				relative_path = relative_path.substr(0, last_slash + 1) + _request.getFile();
+			else
+				relative_path = _request.getFile();
+		}
+		
+		// Borra barra inicial para concatenar con root
+		if (!relative_path.empty() && relative_path[0] == '/')
+			relative_path = relative_path.substr(1);
+		
+		// Construir full_path
+		if (root == "./" || root == ".")
+			full_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
+		else if (root.empty() || root == "/")
+			full_path = "/" + relative_path;
 		else
-			full_path = target_location.getDirective("root") + "/" + _request.getPath().substr(target_location.getPath().length()) + "/" + _request.getFile();
+			full_path = root + "/" + relative_path;
+		
 		std::cout << "[Response] Ruta completa al recurso: " << full_path << std::endl;
 		readFile(full_path);
 		if (_status_code == 404 || _status_code == 406)
@@ -438,11 +513,11 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 	if (root.empty())
 		root = server_config.getDirective("root");
 	
-	// Eliminar la barra inicial del path si está presente
+	// Elimina la barra inicial del path si está presente
 	if (!relative_path.empty() && relative_path[0] == '/')
 		relative_path = relative_path.substr(1);
 	
-	// Manejar la ruta root
+	// Manejamos la ruta root
 	if (root.empty() || root == "/")
 		full_path = "/" + relative_path;
 	else
