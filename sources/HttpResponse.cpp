@@ -109,7 +109,8 @@ void HttpResponse::readFile(const std::string &file_path)
 	std::cerr << "Reading file: " << file_path << std::endl;
 	std::string extension;
 	extension = file_path.substr(file_path.find_last_of('.') + 1);
-	
+	std::cout << "File path: " << file_path << std::endl;
+
 	if (extension != "html") //Add more file types if implemented after cgi implementation
 	{
 		_status_code = 200;
@@ -117,7 +118,7 @@ void HttpResponse::readFile(const std::string &file_path)
 		//makeErrorResponse();
 		//return;
 	}
-	if (access(file_path.c_str(), F_OK) != 0)
+	if (access(file_path.c_str(), R_OK) != 0)
 	{
 		_status_code = 404;
 		_request.setValidRequest(false);
@@ -149,6 +150,7 @@ void HttpResponse::makeAutoindex()
 	struct dirent *entry;
 	std::string html_page;
 	std::string path = _request.getTargetLocation().getPath();
+	std::cout << "[Response] Generando autoindex para location path: " << path << std::endl;
 	std::string current_path = _request.getTargetLocation().getDirective("root") + "/" + _request.getPath().substr(_request.getTargetLocation().getPath().length());
 	std::string root_path = _request.getTargetLocation().getDirective("root");
 
@@ -156,6 +158,7 @@ void HttpResponse::makeAutoindex()
 		path = path.erase(path.length() - 1);
 	if (current_path[current_path.length() - 1] == '/')
 		current_path = current_path.erase(current_path.length() - 1);
+	std::cout << "[Response] Generando autoindex para path: " << current_path << std::endl;
 	if ((dir = opendir(current_path.c_str())) != NULL)
 	{
 		html_page = "<html><head><title>Index of " + path + "</title></head><body>";
@@ -305,8 +308,9 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		std::string check_path;
 		std::string root = target_location.getDirective("root");
 		if (root.empty())
-			root = server_config.getDirective("root");
+			root = target_location.getDirective("root");
 		
+		std::cout << "[Response] Verificando si el path es un directorio: " << requested_path << std::endl;
 		std::string relative_path = requested_path;
 		if (!target_location.getDirective("root").empty() && 
 		    relative_path.find(target_location.getPath()) == 0)
@@ -320,7 +324,10 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 			check_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
 		else
 			check_path = root + "/" + relative_path;
-		
+		std::cout << "[Response] Ruta a verificar: " << check_path << std::endl;
+		std::cout << "[Response] Ruta solicitada: " << requested_path << std::endl;
+		std::cout << "[Response] Root usado: " << root << std::endl;
+		std::cout << "[Response] Ruta relativa: " << relative_path << std::endl;
 		// Verificar si es un directorio
 		struct stat path_stat;
 		if (stat(check_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))

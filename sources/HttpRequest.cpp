@@ -541,11 +541,11 @@ void HttpRequest::parseBody(const std::string &body)
 		}
 
 	}  
-	else if (_headers.find("Content-Length") != _headers.end())
+	else if (_headers.find("content-length") != _headers.end())
 	{
 		try 
 		{
-			size_t content_length = static_cast<size_t>(strtol(_headers["Content-Length"].c_str(), NULL, 10));
+			size_t content_length = static_cast<size_t>(strtol(_headers["content-length"].c_str(), NULL, 10));
 			
 			if (body.size() > content_length)
 			{
@@ -571,7 +571,7 @@ void HttpRequest::parseBody(const std::string &body)
 			return;
 		}
 	}
-	else if (_headers.find("Content-Length") == _headers.end())
+	else if (_headers.find("content-length") == _headers.end())
 	{
 		// Only POST and PUT require Content-Length header
 		// GET, DELETE, and other methods without body can omit it
