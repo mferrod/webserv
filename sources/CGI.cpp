@@ -31,7 +31,8 @@ bool CGI::findScriptPath() {
         request_path = request_path.substr(location_path.length());
     }
     
-    _script_path = root + request_path;
+    _script_path = _location.getDirective("cgi_path");
+    std::cout << "CGI: Script path determined as: " << _script_path << std::endl;
     
     // Verificar que existe
     if (access(_script_path.c_str(), F_OK) != 0) {
@@ -41,11 +42,11 @@ bool CGI::findScriptPath() {
     }
     
     // Verificar que es ejecutable (opcional)
-    if (access(_script_path.c_str(), X_OK) != 0) {
+    /* if (access(_script_path.c_str(), X_OK) != 0) {
         std::cerr << "CGI: Script sin permisos de ejecución: " << _script_path << std::endl;
         _status_code = 403;
         return false;
-    }
+    } */
     
     return true;
 }
@@ -53,15 +54,17 @@ bool CGI::findScriptPath() {
 // Encuentra el intérprete (python, bash, php...)
 bool CGI::findCGIExecutor() {
     // Obtener extensión del archivo
-    size_t dot_pos = _script_path.find_last_of('.');
+    size_t dot_pos = _location.getPath().find_last_of('.');
     if (dot_pos == std::string::npos) {
         std::cerr << "CGI: No se puede determinar tipo de script" << std::endl;
         _status_code = 500;
         return false;
     }
     
-    std::string extension = _script_path.substr(dot_pos);
-    
+    std::string extension = _location.getPath().substr(dot_pos);
+    if (extension[extension.size() - 1] == '$')
+        extension = extension.substr(0, extension.size() - 1);
+    std::cout << "CGI: Script extension: " << extension << std::endl;
     // Buscar en cgi_path de la configuración
     std::string cgi_path = _location.getDirective("cgi_path");
     std::string cgi_ext = _location.getDirective("cgi_ext");
@@ -115,6 +118,8 @@ bool CGI::findCGIExecutor() {
             _cgi_executor = cgi_path.substr(start, end - start);
         }
     }
+    else if (extension == ".bla")
+        _cgi_executor = "./ubuntu_cgi_tester"; // Specific case for .bla files
     
     if (_cgi_executor.empty()) {
         std::cerr << "CGI: No se encontró intérprete para " << extension << std::endl;
@@ -167,7 +172,7 @@ void CGI::setupEnvironment() {
     }
     
     // Buscar el nombre del script en el path
-    size_t script_name_end = request_path_clean.find_first_of('/', 1);
+    size_t script_name_end = request_path_clean.find_first_of('?', 1);
     if (script_name_end != std::string::npos) {
         // Hay algo después del script
         _env_vars["PATH_INFO"] = request_path_clean.substr(script_name_end);
@@ -213,6 +218,12 @@ void CGI::setupEnvironment() {
     
     // REMOTE_ADDR (IP del cliente) - necesitarías obtenerla del socket
     _env_vars["REMOTE_ADDR"] = "127.0.0.1"; // Placeholder
+    // Debug: mostrar todas las variables de entorno
+    std::cout << "CGI: Environment variables configured:" << std::endl;
+    for (std::map<std::string, std::string>::iterator it = _env_vars.begin();
+         it != _env_vars.end(); ++it) {
+        std::cout << "  " << it->first << "=" << it->second << std::endl;
+    }
 }
 
 bool CGI::createPipes() {

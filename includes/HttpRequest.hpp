@@ -97,6 +97,8 @@ class HttpRequest
 			}
 			if (!_body.empty())
 				std::cout << "Body: " << _body << std::endl;
+			else
+        		std::cout << "Body is empty." << std::endl;
 			}
 		}
 };

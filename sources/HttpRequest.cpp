@@ -16,6 +16,7 @@ HttpRequest::HttpRequest()
 	_valid_request = true;
 	_port = 0;
 	_host = "";
+	_target_location = Location();
 }
 
 HttpRequest::~HttpRequest() {}
@@ -36,6 +37,7 @@ HttpRequest::HttpRequest(const HttpRequest &other)
 	_path_dir = other._path_dir;
 	_path_file = other._path_file;
 	_path_info = other._path_info;
+	_target_location = other._target_location;
 }
 
 HttpRequest &HttpRequest::operator=(const HttpRequest &other)
@@ -56,6 +58,7 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &other)
 		_path_dir = other._path_dir;
 		_path_file = other._path_file;
 		_path_info = other._path_info;
+		_target_location = other._target_location;
 	}
 	return *this;
 }

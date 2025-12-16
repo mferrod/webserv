@@ -118,5 +118,7 @@ bool ClientConnection::parseRequest() {
 void ClientConnection::makeResponse(std::vector<ServerSocket> &servers) {
 	std::cout << "File path in request out: " << _request.getFile() << std::endl;
 	_response.handleRequest(servers);
+	_request.printRequest(); // For debugging
 	_response_buffer = _response.buildResponse();
+	std::cout << "Response: \n" << _response_buffer << std::endl;
 }
