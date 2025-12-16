@@ -449,6 +449,18 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 
 void HttpResponse::handlePost()
 {
+	std::cout << "[Response] Manejo de POST" << std::endl;
+	Location target_location = _request.getTargetLocation();
+
+	if (target_location.getDirective("cgi_processing") == "on")
+	{
+		std::cout << "[Response] POST con CGI detectado" << std::endl;
+		handleCGI();
+		return;
+	}
+
+	std::cout << "[Response] POST sin CGI - manejando como upload" << std::endl;
+
 	if (_request.getBody().empty())
 	{
 		_status_code = 400;
@@ -457,7 +469,6 @@ void HttpResponse::handlePost()
 		return;
 	}
 	std::ostringstream filename_ss;
-	filename_ss << "upload_" << time(0) << ".txt";
 	std::string filename = filename_ss.str();
 	Location target_location = _request.getTargetLocation();
 	std::string filepath;
