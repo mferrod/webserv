@@ -1,0 +1,13 @@
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/main.cpp -o sources/main.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/HttpRequest.cpp -o sources/HttpRequest.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/httpUtils.cpp -o sources/httpUtils.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/ServerManager.cpp -o sources/ServerManager.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/ServerSocket.cpp -o sources/ServerSocket.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/ClientConnection.cpp -o sources/ClientConnection.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/ConfigParser.cpp -o sources/ConfigParser.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/ConfigValidator.cpp -o sources/ConfigValidator.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/ServerConfig.cpp -o sources/ServerConfig.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/Location.cpp -o sources/Location.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/HttpResponse.cpp -o sources/HttpResponse.o
+c++ -Wall -Wextra -Werror -std=c++98 -g -c sources/CGI.cpp -o sources/CGI.o
+c++ -Wall -Wextra -Werror -std=c++98 -g sources/main.o sources/HttpRequest.o sources/httpUtils.o sources/ServerManager.o sources/ServerSocket.o sources/ClientConnection.o sources/ConfigParser.o sources/ConfigValidator.o sources/ServerConfig.o sources/Location.o sources/HttpResponse.o sources/CGI.o -o webserv

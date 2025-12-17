@@ -613,6 +613,7 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 	_body.clear();
 	_headers["Content-Length"] = "0";
 	_headers["Connection"] = "close";
+	return;
 }
 
 void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
@@ -652,6 +653,10 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 		{
 			handleDelete(servers[server_index].getServerConfig());
 		}
+		if (!_request.isValidRequest())
+			makeErrorResponse();
+		else
+			buildResponse();
 		/* else //Necessary?
 		{
 			makeErrorResponse();
@@ -715,6 +720,7 @@ void HttpResponse::makeErrorResponse()
 std::string HttpResponse::buildResponse()
 {
 	std::string response;
+	_reason = getReason();
 
 	std::ostringstream ss;
 	ss << _status_code;

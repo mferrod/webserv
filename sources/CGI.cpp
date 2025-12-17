@@ -172,7 +172,8 @@ void CGI::setupEnvironment() {
     }
     
     // Buscar el nombre del script en el path
-    size_t script_name_end = request_path_clean.find_first_of('?', 1);
+    //size_t script_name_end = request_path_clean.find_first_of('?', 1);
+    size_t script_name_end = request_path_clean.find_first_of('/', 1);
     if (script_name_end != std::string::npos) {
         // Hay algo después del script
         _env_vars["PATH_INFO"] = request_path_clean.substr(script_name_end);

@@ -1,0 +1,30 @@
+WEBSERV EVALUATION LOG - Wed 17 Dec 2025 07:35:50 PM CET
+========================================
+[PASS] Project compiles successfully without warnings/errors
+[PASS] webserv executable found
+[PASS] Configuration file configs/evaluation.conf found
+[PASS] YoupyBanane directory structure correct
+[PASS] ubuntu_cgi_tester found and executable
+[PASS] Uses poll() for I/O multiplexing
+[PASS] I/O multiplexing in main loop
+[PASS] poll() monitors both read (POLLIN) and write (POLLOUT) events
+[PASS] recv/send operations found in code
+[WARNING] Check errno usage manually - may be acceptable context
+[PASS] Server started successfully
+[PASS] Server responding on port 8080 (code: 404)
+[WARNING] GET / returns 404 (expected 200)
+[PASS] 404 error page working
+[WARNING] POST on / returns 400 (expected 405)
+[WARNING] GET /directory/ returns 000
+[WARNING] Directory content may not be as expected
+[WARNING] GET /uploads/ returns 000
+[WARNING] PUT request returned 405
+[WARNING] DELETE returned 404
+[WARNING] Body limit test returned 500 (expected 413)
+[PASS] Server survived unknown method (response: 405)
+[FAIL] CGI not working properly (code: 500)
+[PASS] Server stable after CGI execution
+[PASS] Python CGI accessible
+[PASS] Server handles concurrent connections
+[PASS] Sequential requests: 100% availability
+[WARNING] ubuntu_tester requires manual execution

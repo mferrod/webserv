@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
     }
 
     try {
-        std::string configFile = (argc == 2) ? argv[1] : "youpi.bad";
+        std::string configFile = (argc == 2) ? argv[1] : "./configs/evaluation.conf";
 		ServerManager manager(configFile);
         manager.run(); // Entra al bucle de eventos con poll()
     } catch (const std::exception &e) {
