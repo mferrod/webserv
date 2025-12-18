@@ -44,6 +44,10 @@ HttpResponse::HttpResponse(const HttpRequest &req)
 
 void HttpResponse::isAllowedMethod()
 {
+	// Don't override error status codes (like 413) that were already set
+	if (_status_code >= 400)
+		return;
+	
 	std::string allowed_methods = _request.getTargetLocation().getDirective("allowed_methods");
 	std::cout << "Target location: " << _request.getTargetLocation().getPath() << std::endl;
 	std::cout << "[Response] Allowed methods for this location: " << allowed_methods << std::endl;
@@ -163,49 +167,94 @@ void HttpResponse::makeAutoindex()
 	DIR *dir;
 	struct dirent *entry;
 	std::string html_page;
-	std::string path = _request.getTargetLocation().getPath();
-	std::cout << "[Response] Generando autoindex para location path: " << path << std::endl;
-	std::string root_path = _request.getTargetLocation().getDirective("root");
-	std::string current_path = root_path + "/" + _request.getPath().substr(_request.getTargetLocation().getPath().length());
-
-	if (path[path.length() - 1] == '/')
-		path = path.erase(path.length() - 1);
-	if (current_path[current_path.length() - 1] == '/')
-		current_path = current_path.erase(current_path.length() - 1);
-	std::cout << "[Response] Generando autoindex para current_path: " << current_path << std::endl;
+	std::string requested_path = _request.getPath();
+	std::string location_path = _request.getTargetLocation().getPath();
+	std::string root = _request.getTargetLocation().getDirective("root");
+	
+	// Si location root está vacío, usar el server root
+	if (root.empty())
+		root = ""; // Will be handled later
+	
+	// Construir la ruta física del directorio
+	std::string relative_path = requested_path;
+	if (!_request.getTargetLocation().getDirective("root").empty() && 
+	    relative_path.find(location_path) == 0)
+	{
+		relative_path = relative_path.substr(location_path.length());
+	}
+	
+	if (!relative_path.empty() && relative_path[0] == '/')
+		relative_path = relative_path.substr(1);
+	
+	std::string current_path;
+	if (root.empty())
+		root = ".";
+	
+	if (root == "." || root == "./")
+		current_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
+	else if (root == "/")
+		current_path = "/" + relative_path;
+	else
+		current_path = root + "/" + relative_path;
+	
+	// Remove trailing slash from current_path for opendir
+	if (current_path.length() > 1 && current_path[current_path.length() - 1] == '/')
+		current_path = current_path.substr(0, current_path.length() - 1);
+	
+	std::cout << "[Response] Autoindex - requested_path: " << requested_path << ", current_path: " << current_path << std::endl;
+	
 	if ((dir = opendir(current_path.c_str())) != NULL)
 	{
-		html_page = "<html><head><title>Index of " + path + "</title></head><body>";
-		std::string full_path = path + "/" + current_path.substr(root_path.length());
-		if (full_path[full_path.length() - 1] == '/')
-			full_path = full_path.erase(full_path.length() - 1);
-		html_page += "<h1>Index of " + full_path + "</h1><ul>";
+		// Use the requested path for display
+		std::string display_path = requested_path;
+		if (display_path.length() > 1 && display_path[display_path.length() - 1] == '/')
+			display_path = display_path.substr(0, display_path.length() - 1);
+		
+		html_page = "<html><head><title>Index of " + display_path + "</title></head><body>";
+		html_page += "<h1>Index of " + display_path + "/</h1><ul>";
 		
 		while ((entry = readdir(dir)) != NULL)
 		{
 			std::string entry_name = entry->d_name;
-			if (entry_name != "." && entry_name != "..")
-				full_path  += "/" + entry_name;
-			else
-				full_path = entry_name;
-
-			struct stat	entry_stat;
-			stat(full_path.c_str(), &entry_stat);
-			if (S_ISDIR(entry_stat.st_mode) && entry->d_type != DT_REG)
-				html_page += "<li><a href=\"" + full_path + "\">" + "\t" +entry_name + "/" + "</a></li>";
-			else if (entry->d_type == DT_REG)
+			std::string entry_path;
+			
+			if (entry_name == ".")
 			{
-				std::string extension;
-				size_t dot_pos = entry_name.find_last_of('.');
-				if (dot_pos != std::string::npos)
-					extension = entry_name.substr(dot_pos + 1);
-				if (extension == "html") // Add more file types if implemented after cgi implementation
-					html_page += "<li><a href=\"" + full_path + "\">" + "    " + entry_name + "</a></li>";
+				entry_path = "./";
+			}
+			else if (entry_name == "..")
+			{
+				entry_path = "../";
+			}
+			else
+			{
+				// Build the full filesystem path to check if it's a directory
+				std::string full_filesystem_path = current_path + "/" + entry_name;
+				struct stat entry_stat;
+				stat(full_filesystem_path.c_str(), &entry_stat);
+				
+				if (S_ISDIR(entry_stat.st_mode))
+				{
+					entry_path = entry_name + "/";
+				}
 				else
-					html_page += "<li>    " + entry_name + "</li>";
-			}	
-
+				{
+					entry_path = entry_name;
+				}
+			}
+			
+			// Build the URL path
+			std::string url_path;
+			if (entry_name == ".")
+				url_path = "./";
+			else if (entry_name == "..")
+				url_path = "../";
+			else
+				url_path = entry_name;
+			
+			html_page += "<li><a href=\"" + url_path + "\">" + entry_path + "</a></li>";
 		}
+		
 		html_page += "</ul></body></html>";
 		closedir(dir);
 		_status_code = 200;
@@ -358,7 +407,45 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 	
 	if (_request.getFile().empty())
 	{
-	
+		// If the requested path is different from location path, check if it exists
+		if (_request.getPath() != target_location.getPath())
+		{
+			// This is a specific resource request, not a directory
+			// Check if the file exists
+			std::string root = target_location.getDirective("root");
+			if (root.empty())
+				root = server_config.getDirective("root");
+			
+			std::string relative_path = _request.getPath();
+			std::string location_path = target_location.getPath();
+			if (!target_location.getDirective("root").empty() && 
+			    relative_path.find(location_path) == 0)
+			{
+				relative_path = relative_path.substr(location_path.length());
+			}
+			
+			if (!relative_path.empty() && relative_path[0] == '/')
+				relative_path = relative_path.substr(1);
+			
+			std::string full_path;
+			if (root == "./" || root == ".")
+				full_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
+			else if (root.empty() || root == "/")
+				full_path = "/" + relative_path;
+			else
+				full_path = root + "/" + relative_path;
+			
+			struct stat file_stat;
+			if (stat(full_path.c_str(), &file_stat) != 0)
+			{
+				// File does not exist
+				_status_code = 404;
+				makeErrorResponse();
+				return;
+			}
+		}
+		
+		// Path is valid or is a directory, now apply index logic
 		if (target_location.getDirective("index") == "")
 		{
 			if (server_config.getDirective("index").empty() == false)
@@ -466,7 +553,10 @@ void HttpResponse::handlePost()
 	std::cout << "[Response] Manejo de POST" << std::endl;
 	Location target_location = _request.getTargetLocation();
 	std::cout << "[Response] Target location path: " << target_location.getPath() << std::endl;
-	if (target_location.getDirective("cgi_processing") == "on")
+	
+	// Check for CGI processing - either by cgi_processing directive or by cgi_path presence
+	if (target_location.getDirective("cgi_processing") == "on" || 
+	    !target_location.getDirective("cgi_path").empty())
 	{
 		std::cout << "[Response] POST con CGI detectado" << std::endl;
 		handleCGI();
@@ -482,7 +572,10 @@ void HttpResponse::handlePost()
 		makeErrorResponse();
 		return;
 	}
+	
+	// Generate filename with timestamp
 	std::ostringstream filename_ss;
+	filename_ss << "upload_" << time(NULL) << ".txt";
 	std::string filename = filename_ss.str();
 	std::string filepath;
 	if (target_location.getDirective("upload_dir") != "")
@@ -544,6 +637,15 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 	if (root.empty())
 		root = server_config.getDirective("root");
 	
+	// Si la location tiene su propio root, quitar el prefijo de la location del path
+	std::string location_path = target_location.getPath();
+	if (!target_location.getDirective("root").empty() && 
+	    relative_path.find(location_path) == 0)
+	{
+		// Quita el prefijo de la location
+		relative_path = relative_path.substr(location_path.length());
+	}
+	
 	// Elimina la barra inicial del path si está presente
 	if (!relative_path.empty() && relative_path[0] == '/')
 		relative_path = relative_path.substr(1);
@@ -570,6 +672,8 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 		else
 			full_path = root;
 	}
+
+	std::cout << "[DELETE] Full path: " << full_path << std::endl;
 
 	// Verificamos si el recurso existe
 	struct stat file_stat;
@@ -613,7 +717,6 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 	_body.clear();
 	_headers["Content-Length"] = "0";
 	_headers["Connection"] = "close";
-	return;
 }
 
 void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
@@ -636,14 +739,20 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 			
 	}
 	handleTargetLocation(servers[server_index].getServerConfig());
-	checkClientMaxBodySize();
 	//std::cout << "Target location out: " << _request.getTargetLocation().getPath() << std::endl;
+	checkClientMaxBodySize();
 	this->isAllowedMethod();
 	if (_request.isValidRequest())
 	{
-		if (_request.getMethod() == "GET") // Check method implementation
+		if (_request.getMethod() == "GET" || _request.getMethod() == "HEAD") // HEAD same as GET but no body
 		{
 			handleGet(servers[server_index].getServerConfig());
+			// For HEAD, keep headers but remove body (but keep Content-Length for what it would be)
+			if (_request.getMethod() == "HEAD")
+			{
+				_body = "";
+				// Content-Length stays as it would be for GET (this is correct per HTTP spec)
+			}
 		}
 		else if (_request.getMethod() == "POST")
 		{
@@ -653,10 +762,6 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 		{
 			handleDelete(servers[server_index].getServerConfig());
 		}
-		if (!_request.isValidRequest())
-			makeErrorResponse();
-		else
-			buildResponse();
 		/* else //Necessary?
 		{
 			makeErrorResponse();
@@ -720,7 +825,6 @@ void HttpResponse::makeErrorResponse()
 std::string HttpResponse::buildResponse()
 {
 	std::string response;
-	_reason = getReason();
 
 	std::ostringstream ss;
 	ss << _status_code;

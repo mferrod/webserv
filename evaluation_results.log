@@ -1,4 +1,4 @@
-WEBSERV EVALUATION LOG - Wed 17 Dec 2025 07:35:50 PM CET
+WEBSERV EVALUATION LOG - Thu Dec 18 06:18:42 PM CET 2025
 ========================================
 [PASS] Project compiles successfully without warnings/errors
 [PASS] webserv executable found
@@ -11,18 +11,18 @@ WEBSERV EVALUATION LOG - Wed 17 Dec 2025 07:35:50 PM CET
 [PASS] recv/send operations found in code
 [WARNING] Check errno usage manually - may be acceptable context
 [PASS] Server started successfully
-[PASS] Server responding on port 8080 (code: 404)
-[WARNING] GET / returns 404 (expected 200)
+[PASS] Server responding on port 8080 (code: 200)
+[PASS] GET / returns 200 OK
 [PASS] 404 error page working
-[WARNING] POST on / returns 400 (expected 405)
-[WARNING] GET /directory/ returns 000
-[WARNING] Directory content may not be as expected
-[WARNING] GET /uploads/ returns 000
-[WARNING] PUT request returned 405
+[PASS] POST on / returns 405 Method Not Allowed
+[PASS] GET /directory/ returns 200
+[PASS] Directory listing or index file served
+[PASS] GET /uploads/ returns 200 (autoindex)
+[WARNING] PUT request returned 501
 [WARNING] DELETE returned 404
-[WARNING] Body limit test returned 500 (expected 413)
-[PASS] Server survived unknown method (response: 405)
-[FAIL] CGI not working properly (code: 500)
+[PASS] Client body size limit working (413 Payload Too Large)
+[PASS] Server survived unknown method (response: 501)
+[PASS] CGI working with POST to .bla file
 [PASS] Server stable after CGI execution
 [PASS] Python CGI accessible
 [PASS] Server handles concurrent connections

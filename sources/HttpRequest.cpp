@@ -81,8 +81,9 @@ bool HttpRequest::isValidMethod(const std::string &method) const
 bool HttpRequest::isImplementedMethod(const std::string &method) const
 {
 	// Check config file for implemented methods
+	// HEAD is implemented as GET without body
 	const std::string implemented_methods[] = {
-		"GET", "POST", "DELETE"
+		"GET", "HEAD", "POST", "DELETE"
 	};
 
 	for (size_t i = 0; i < sizeof(implemented_methods) / sizeof(implemented_methods[0]); i++)
