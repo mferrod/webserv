@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <fcntl.h>
 #include <sstream>
+#include <arpa/inet.h>
 
 ServerSocket::ServerSocket(const ServerConfig& serverConfig) : _fd(-1), _host(serverConfig.getDirective("host")), _server_config(serverConfig) {
 	//Parseo del puerto.
@@ -28,7 +29,13 @@ ServerSocket::ServerSocket(const ServerConfig& serverConfig) : _fd(-1), _host(se
 	// Configurar la dirección del socket
 	memset(&_address, 0, sizeof(_address));
 	_address.sin_family = AF_INET;
-	_address.sin_addr.s_addr = INADDR_ANY;  // Escuchar en todas las interfaces
+	
+	// Si hay host específico, usarlo; si no, escuchar en todas las interfaces
+	if (!_host.empty()) {
+		inet_pton(AF_INET, _host.c_str(), &_address.sin_addr);
+	} else {
+		_address.sin_addr.s_addr = INADDR_ANY;
+	}
 	_address.sin_port = htons(_port);
 }
 

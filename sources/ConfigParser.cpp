@@ -75,6 +75,21 @@ void ConfigParser::parseServer(std::ifstream &file) {
         std::getline(iss, value);
         trimWhitespace(value);
         
+        // Handle listen directive: if it contains IP:PORT, separate them
+        if (key == "listen") {
+            size_t colonPos = value.find(':');
+            if (colonPos != std::string::npos) {
+                // Format: IP:PORT
+                std::string host = value.substr(0, colonPos);
+                std::string port = value.substr(colonPos + 1);
+                trimWhitespace(host);
+                trimWhitespace(port);
+                server.setDirective("listen", port);
+                server.setDirective("host", host);
+                continue;
+            }
+        }
+        
         server.setDirective(key, value);
     }
 }
