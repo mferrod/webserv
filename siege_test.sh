@@ -46,14 +46,14 @@ echo "✅ Entorno verificado"
 echo "🔍 Verificando entorno del proyecto..."
 
 # Verificar que estamos en el directorio correcto
-if [ ! -f "Makefile" ] || [ ! -f "srcs/main.cpp" ]; then
+if [ ! -f "Makefile" ] || [ ! -f "sources/main.cpp" ]; then
     echo "❌ Error: No se encontró Makefile o srcs/main.cpp"
     echo "   Ejecuta este script desde el directorio raíz del proyecto webserv"
     exit 1
 fi
 
 # Verificar que existe config/default.conf
-if [ ! -f "config/default.conf" ]; then
+if [ ! -f "configs/default.conf" ]; then
     echo "❌ Error: No se encontró config/default.conf"
     echo "   Asegúrate de tener el archivo de configuración"
     exit 1
