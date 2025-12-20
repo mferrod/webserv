@@ -66,7 +66,6 @@ class HttpRequest
 		void checkBodySize(const ServerConfig &serverConfig);
 		
 		bool isValidRequest() const;
-		//void setStatusCode(int code) { _status_code = code; }
 
 		void setTargetLocation(Location &location) { _target_location = location; }
 		void setValidRequest(bool valid) { _valid_request = valid; }
@@ -82,23 +81,4 @@ class HttpRequest
 		std::string							getFile() const { return _path_file; }
 		int									getPort() const { return _port; }
 		std::string							getHost() const { return _host; }
-
-		// For debugging
-		void printRequest() const {
-			if (!_valid_request) {
-				std::cout << "Invalid HTTP Request. Status Code: " << _status_code << std::endl;
-				return;
-			} else {
-			std::cout << "Method: " << _method << std::endl;
-			std::cout << "Path: " << _path << std::endl;
-			std::cout << "Version: " << _version << std::endl;
-			for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) {
-				std::cout << it->first << ": " << it->second << std::endl;
-			}
-			if (!_body.empty())
-				std::cout << "Body: " << _body << std::endl;
-			else
-        		std::cout << "Body is empty." << std::endl;
-			}
-		}
 };

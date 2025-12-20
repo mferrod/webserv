@@ -44,13 +44,10 @@ HttpResponse::HttpResponse(const HttpRequest &req)
 
 void HttpResponse::isAllowedMethod()
 {
-	// Don't override error status codes (like 413) that were already set
 	if (_status_code >= 400)
 		return;
 	
 	std::string allowed_methods = _request.getTargetLocation().getDirective("allowed_methods");
-	std::cout << "Target location: " << _request.getTargetLocation().getPath() << std::endl;
-	std::cout << "[Response] Allowed methods for this location: " << allowed_methods << std::endl;
 	if (allowed_methods.find(_request.getMethod()) == std::string::npos)
 	{
 		_status_code = 405;
@@ -64,7 +61,7 @@ void HttpResponse::checkClientMaxBodySize()
 	std::string max_body_size_str = _request.getTargetLocation().getDirective("client_max_body_size");
 	if (!max_body_size_str.empty())
 	{
-		size_t max_body_size = static_cast<size_t>(strtol(max_body_size_str.c_str(), NULL, 10)); // Convert value to size_t
+		size_t max_body_size = static_cast<size_t>(strtol(max_body_size_str.c_str(), NULL, 10));
 		if (_request.getBody().size() > max_body_size)
 		{
 			_status_code = 413;
@@ -91,10 +88,9 @@ void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 		size_t dot_pos = _request.getPath().find_last_of('.');
 			if (dot_pos != std::string::npos)
 				extension = _request.getPath().substr(dot_pos + 1);
-		if (extension == "bla" && loc.getPath() == "~ \\.bla$" && _request.getMethod() == "POST") // Specific case for cgi_bin location
+		if (extension == "bla" && loc.getPath() == "~ \\.bla$" && _request.getMethod() == "POST")
 		{
 			target_location = loc;
-			std::cout << "[Response] CGI location matched for .bla files: " << loc.getPath() << std::endl;
 			_request.setTargetLocation(target_location);
 			return;
 		}	
@@ -122,19 +118,13 @@ void HttpResponse::redirection(std::string url)
 
 void HttpResponse::readFile(const std::string &file_path)
 {
-	//std::cout << "Attempting to read file: " << file_path << std::endl;
 	std::ifstream file(file_path.c_str());
 	std::cerr << "Reading file: " << file_path << std::endl;
 	std::string extension;
 	extension = file_path.substr(file_path.find_last_of('.') + 1);
-	std::cout << "File path: " << file_path << std::endl;
-
-	if (extension != "html") //Add more file types if implemented after cgi implementation
+	if (extension != "html")
 	{
 		_status_code = 200;
-		//_request.setValidRequest(false);
-		//makeErrorResponse();
-		//return;
 	}
 	if (access(file_path.c_str(), R_OK) != 0)
 	{
@@ -157,7 +147,7 @@ void HttpResponse::readFile(const std::string &file_path)
 	oss << _body.size();
 	_headers["Content-Length"] = oss.str();
 	_headers["Content-Type"] = getMimeType(file_path);
-	_headers["Connection"] = "close"; // Close connection or keep-alive?
+	_headers["Connection"] = "close";
 	file.close();
 	return;
 }
@@ -171,11 +161,9 @@ void HttpResponse::makeAutoindex()
 	std::string location_path = _request.getTargetLocation().getPath();
 	std::string root = _request.getTargetLocation().getDirective("root");
 	
-	// Si location root está vacío, usar el server root
 	if (root.empty())
-		root = ""; // Will be handled later
+		root = "";
 	
-	// Construir la ruta física del directorio
 	std::string relative_path = requested_path;
 	if (!_request.getTargetLocation().getDirective("root").empty() && 
 	    relative_path.find(location_path) == 0)
@@ -197,15 +185,11 @@ void HttpResponse::makeAutoindex()
 	else
 		current_path = root + "/" + relative_path;
 	
-	// Remove trailing slash from current_path for opendir
 	if (current_path.length() > 1 && current_path[current_path.length() - 1] == '/')
 		current_path = current_path.substr(0, current_path.length() - 1);
-	
-	std::cout << "[Response] Autoindex - requested_path: " << requested_path << ", current_path: " << current_path << std::endl;
-	
+		
 	if ((dir = opendir(current_path.c_str())) != NULL)
 	{
-		// Use the requested path for display
 		std::string display_path = requested_path;
 		if (display_path.length() > 1 && display_path[display_path.length() - 1] == '/')
 			display_path = display_path.substr(0, display_path.length() - 1);
@@ -228,7 +212,6 @@ void HttpResponse::makeAutoindex()
 			}
 			else
 			{
-				// Build the full filesystem path to check if it's a directory
 				std::string full_filesystem_path = current_path + "/" + entry_name;
 				struct stat entry_stat;
 				stat(full_filesystem_path.c_str(), &entry_stat);
@@ -243,7 +226,6 @@ void HttpResponse::makeAutoindex()
 				}
 			}
 			
-			// Build the URL path
 			std::string url_path;
 			if (entry_name == ".")
 				url_path = "./";
@@ -274,37 +256,27 @@ void HttpResponse::makeAutoindex()
 	return;
 }
 
-void HttpResponse::handleCGI() {
-	std::cout << "\n[Response] Procesando request CGI..." << std::endl;
-	
-	// Crear objeto CGI con el request y la location
+void HttpResponse::handleCGI() {	
 	CGI cgi(_request, _request.getTargetLocation());
 	
-	// Ejecutar el CGI
 	if (!cgi.execute()) {
-		std::cerr << "[Response] Error ejecutando CGI" << std::endl;
 		_status_code = cgi.getStatusCode();
 		makeErrorResponse();
 		return;
 	}
 	
-	// Obtener la salida del CGI
 	std::string cgi_output = cgi.getOutput();
 	
-	// Verificar si el CGI devolvió headers propios
 	size_t header_end = cgi_output.find("\r\n\r\n");
 	
 	if (header_end != std::string::npos) {
-		// El CGI generó headers completos (Content-Type, etc)
 		std::string cgi_headers = cgi_output.substr(0, header_end);
 		std::string cgi_body = cgi_output.substr(header_end + 4);
 		
-		// Parsear los headers del CGI
 		std::istringstream header_stream(cgi_headers);
 		std::string line;
 		
 		while (std::getline(header_stream, line)) {
-			// Eliminar \r si existe
 			if (!line.empty() && line[line.length() - 1] == '\r') {
 				line = line.substr(0, line.length() - 1);
 			}
@@ -330,14 +302,12 @@ void HttpResponse::handleCGI() {
 		_body = cgi_body;
 		_status_code = 200;
 		
-		// Asegurar que tenemos Content-Length
 		if (_headers.find("Content-Length") == _headers.end()) {
 			std::ostringstream ss;
 			ss << _body.size();
 			_headers["Content-Length"] = ss.str();
 		}
 	} else {
-		// El CGI solo devolvió el body, añadir headers nosotros
 		_body = cgi_output;
 		_status_code = 200;
 		_headers["Content-Type"] = "text/html";
@@ -347,7 +317,6 @@ void HttpResponse::handleCGI() {
 	}
 	
 	_reason = getReason();
-	std::cout << "[Response] CGI procesado exitosamente" << std::endl;
 }
 
 void HttpResponse::handleGet(const ServerConfig &server_config)
@@ -360,20 +329,14 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		makeErrorResponse();
 		return;
 	}
-	std::cout << "[Response] Manejo de GET para file: " << _request.getFile() << std::endl;
-	
-	// Verificar si el path pedido es un directorio sin barra final
-	// Si es así, hacer redirect a path/
 	std::string requested_path = _request.getPath();
 	if (!requested_path.empty() && requested_path[requested_path.length() - 1] != '/')
 	{
-		// Construir la ruta completa para verificar
 		std::string check_path;
 		std::string root = target_location.getDirective("root");
 		if (root.empty())
 			root = target_location.getDirective("root");
 		
-		std::cout << "[Response] Verificando si el path es un directorio: " << requested_path << std::endl;
 		std::string relative_path = requested_path;
 		if (!target_location.getDirective("root").empty() && 
 		    relative_path.find(target_location.getPath()) == 0)
@@ -387,15 +350,9 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 			check_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
 		else
 			check_path = root + "/" + relative_path;
-		std::cout << "[Response] Ruta a verificar: " << check_path << std::endl;
-		std::cout << "[Response] Ruta solicitada: " << requested_path << std::endl;
-		std::cout << "[Response] Root usado: " << root << std::endl;
-		std::cout << "[Response] Ruta relativa: " << relative_path << std::endl;
-		// Verificar si es un directorio
 		struct stat path_stat;
 		if (stat(check_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
 		{
-			// Es un directorio sin barra final - hacer redirect
 			_status_code = 301;
 			_headers["Location"] = requested_path + "/";
 			_reason = getReason();
@@ -407,11 +364,8 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 	
 	if (_request.getFile().empty())
 	{
-		// If the requested path is different from location path, check if it exists
 		if (_request.getPath() != target_location.getPath())
 		{
-			// This is a specific resource request, not a directory
-			// Check if the file exists
 			std::string root = target_location.getDirective("root");
 			if (root.empty())
 				root = server_config.getDirective("root");
@@ -438,21 +392,17 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 			struct stat file_stat;
 			if (stat(full_path.c_str(), &file_stat) != 0)
 			{
-				// File does not exist
 				_status_code = 404;
 				makeErrorResponse();
 				return;
 			}
 		}
 		
-		// Path is valid or is a directory, now apply index logic
 		if (target_location.getDirective("index") == "")
 		{
 			if (server_config.getDirective("index").empty() == false)
 			{
 				_request.setPathFile(server_config.getDirective("index"));
-				//std::cout << "Using server index file: " << server_config.getDirective("index") << std::endl;
-				//std::cout << "Request path file: " << _request.getFile() << std::endl;
 			}
 
 			else
@@ -484,26 +434,20 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		std::string full_path;
 		std::string root = target_location.getDirective("root");
 		
-		// Si location root está vacío, usar server root
 		if (root.empty())
 			root = server_config.getDirective("root");
 		
-		// Construir la ruta completa
 		std::string relative_path = _request.getPath();
 		
-		// Si la location tiene su propio root, quitar el prefijo de la location del path
 		std::string location_path = target_location.getPath();
 		if (!target_location.getDirective("root").empty() && 
 		    relative_path.find(location_path) == 0)
 		{
-			// Quita el prefijo de la location
 			relative_path = relative_path.substr(location_path.length());
 		}
 		
-		// Si se ha solicitado un directorio (termina en /) y hay un index file
 		if (!_request.getFile().empty())
 		{
-			// Reemplazar el directorio base con el archivo index
 			size_t last_slash = relative_path.find_last_of('/');
 			if (last_slash != std::string::npos)
 				relative_path = relative_path.substr(0, last_slash + 1) + _request.getFile();
@@ -511,11 +455,9 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 				relative_path = _request.getFile();
 		}
 		
-		// Borra barra inicial para concatenar con root
 		if (!relative_path.empty() && relative_path[0] == '/')
 			relative_path = relative_path.substr(1);
 		
-		// Construir full_path
 		if (root == "./" || root == ".")
 			full_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
 		else if (root.empty() || root == "/")
@@ -523,7 +465,6 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		else
 			full_path = root + "/" + relative_path;
 		
-		std::cout << "[Response] Ruta completa al recurso: " << full_path << std::endl;
 		readFile(full_path);
 		if (_status_code == 404 || _status_code == 406)
 		{
@@ -542,7 +483,6 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 	}
 	else
 	{
-		std::cout << "[Response] Detectado CGI por cgi_processing presente" << std::endl;
 		handleCGI();
 		return;
 	}
@@ -550,20 +490,14 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 
 void HttpResponse::handlePost()
 {
-	std::cout << "[Response] Manejo de POST" << std::endl;
 	Location target_location = _request.getTargetLocation();
-	std::cout << "[Response] Target location path: " << target_location.getPath() << std::endl;
 	
-	// Check for CGI processing - either by cgi_processing directive or by cgi_path presence
 	if (target_location.getDirective("cgi_processing") == "on" || 
 	    !target_location.getDirective("cgi_path").empty())
 	{
-		std::cout << "[Response] POST con CGI detectado" << std::endl;
 		handleCGI();
 		return;
 	}
-
-	std::cout << "[Response] POST sin CGI - manejando como upload" << std::endl;
 
 	if (_request.getBody().empty())
 	{
@@ -573,7 +507,6 @@ void HttpResponse::handlePost()
 		return;
 	}
 	
-	// Generate filename with timestamp
 	std::ostringstream filename_ss;
 	filename_ss << "upload_" << time(NULL) << ".txt";
 	std::string filename = filename_ss.str();
@@ -609,18 +542,14 @@ void HttpResponse::handlePost()
 	std::ostringstream oss;
 	oss << _body.size();
 	_headers["Content-Length"] = oss.str();
-	_headers["Connection"] = "close"; // Close connection or keep-alive?
+	_headers["Connection"] = "close";
 	return;
-	// Add multipart/form-data support?
-	// Add cgi processing for post?
-	// Validate content-type header?
 }
 
 void HttpResponse::handleDelete(const ServerConfig &server_config)
 {
 	Location target_location = _request.getTargetLocation();
 	
-	// Check if redirection is configured
 	if (!target_location.getDirective("rewrite").empty())
 	{
 		redirection(target_location.getDirective("rewrite"));
@@ -628,38 +557,30 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 		return;
 	}
 
-	// Construir la ruta completa al recurso
 	std::string full_path;
 	std::string root = target_location.getDirective("root");
 	std::string relative_path = _request.getPath();
 	
-	// Si el root de la location está vacío, usar el root del servidor
 	if (root.empty())
 		root = server_config.getDirective("root");
 	
-	// Si la location tiene su propio root, quitar el prefijo de la location del path
 	std::string location_path = target_location.getPath();
 	if (!target_location.getDirective("root").empty() && 
 	    relative_path.find(location_path) == 0)
 	{
-		// Quita el prefijo de la location
 		relative_path = relative_path.substr(location_path.length());
 	}
 	
-	// Elimina la barra inicial del path si está presente
 	if (!relative_path.empty() && relative_path[0] == '/')
 		relative_path = relative_path.substr(1);
 	
-	// Manejamos la ruta root
 	if (root.empty() || root == "/")
 		full_path = "/" + relative_path;
 	else
 	{
-		// Eliminar barra final del root (pero mantener "./" tal cual)
 		if (root.length() > 2 && root[root.length() - 1] == '/')
 			root = root.substr(0, root.length() - 1);
 		
-		// Construir la ruta completa al recurso
 		if (!relative_path.empty())
 		{
 			if (root == ".")
@@ -673,9 +594,8 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 			full_path = root;
 	}
 
-	std::cout << "[DELETE] Full path: " << full_path << std::endl;
+	std::cout << "[DELETE] Full path: " << full_path << std::endl; //??
 
-	// Verificamos si el recurso existe
 	struct stat file_stat;
 	if (stat(full_path.c_str(), &file_stat) != 0)
 	{
@@ -684,16 +604,13 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 		return;
 	}
 
-	// Verificamos si es un directorio
 	if (S_ISDIR(file_stat.st_mode))
 	{
-		// Devolvemos 403 Forbidden para directorios
 		_status_code = 403;
 		makeErrorResponse();
 		return;
 	}
 
-	// Verificamos si tenemos permisos de escritura
 	if (access(full_path.c_str(), W_OK) != 0)
 	{
 		_status_code = 403;
@@ -701,17 +618,13 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 		return;
 	}
 
-	// Intentar eliminar el archivo
 	if (remove(full_path.c_str()) != 0)
 	{
-		// Si al borrarfalla, devolver 500
 		_status_code = 500;
 		makeErrorResponse();
 		return;
 	}
 
-	// Archivo eliminado correctamente
-	// Devolver 204 No Content (estándar para DELETE exitoso sin cuerpo de respuesta)
 	_status_code = 204;
 	_reason = getReason();
 	_body.clear();
@@ -722,7 +635,6 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 {
 	size_t server_index;
-	std::cout << "Path file: " << _request.getFile() << std::endl;
 	for (server_index = 0; server_index < servers.size(); server_index++)
 	{
 		int port;
@@ -730,16 +642,11 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 		ss >> port;
 		if (servers[server_index].getPort() == port)
 		{
-			/* if (!servers[server_index].getServerConfig().getDirective("server_name").empty() 
-			&& servers[server_index].getServerConfig().getDirective("server_name") != _request.getHost())
-				continue; */
-			//if //Check client ip against host configuration
 			break;
 		}
 			
 	}
 	handleTargetLocation(servers[server_index].getServerConfig());
-	//std::cout << "Target location out: " << _request.getTargetLocation().getPath() << std::endl;
 	checkClientMaxBodySize();
 	this->isAllowedMethod();
 	if (_request.isValidRequest())
@@ -747,11 +654,9 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 		if (_request.getMethod() == "GET" || _request.getMethod() == "HEAD") // HEAD same as GET but no body
 		{
 			handleGet(servers[server_index].getServerConfig());
-			// For HEAD, keep headers but remove body (but keep Content-Length for what it would be)
 			if (_request.getMethod() == "HEAD")
 			{
 				_body = "";
-				// Content-Length stays as it would be for GET (this is correct per HTTP spec)
 			}
 		}
 		else if (_request.getMethod() == "POST")
@@ -762,18 +667,11 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 		{
 			handleDelete(servers[server_index].getServerConfig());
 		}
-		/* else //Necessary?
-		{
-			makeErrorResponse();
-		} */
 	}
 	else
 	{
 		makeErrorResponse();
 	}
-	//std::cout << "Response built with status code: " << _status_code << std::endl;
-	//std::cout << "Response body size: " << _body.size() << " bytes" << std::endl;
-	//std::cout << "Response body: " << std::endl << _body << std::endl;
 }
 
 std::string HttpResponse::getReason()
@@ -806,8 +704,6 @@ std::string HttpResponse::getReason()
 
 void HttpResponse::makeErrorResponse()
 {
-	// If _status_code is already set (e.g., by handleDelete), use it
-	// Otherwise, get it from the request
 	if (_status_code == 0 || _status_code == 200)
 		_status_code = _request.getStatusCode();
 	_reason = getReason();
@@ -834,7 +730,6 @@ std::string HttpResponse::buildResponse()
 	{
 		response += it->first + ": " + it->second + "\r\n";
 	}
-
 	response += "\r\n";
 	response += _body;
 

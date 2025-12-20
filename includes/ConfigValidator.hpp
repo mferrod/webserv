@@ -39,7 +39,7 @@ public:
     void validateServerName(const std::string &value);
     void validateRoot(const std::string &value);
     void validateIndex(const std::string &value);
-    void validateClientMaxBodySize(const std::string &value);
+    void validateClientMaxBodySize(const std::string &value, ServerConfig &serverConfig);
     void validateAllowedMethods(const std::string &value);
     void validateErrorPage(const std::string &value);
     void validateAutoindex(const std::string &value);

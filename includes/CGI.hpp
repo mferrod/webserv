@@ -11,39 +11,33 @@ private:
     HttpRequest _request;
     Location _location;
     std::string _script_path;
-    std::string _cgi_executor;  // /usr/bin/python3, /bin/bash, etc
+    std::string _cgi_executor;
     std::map<std::string, std::string> _env_vars;
     std::string _output;
     int _status_code;
     
-    // Pipes para comunicación
-    int _pipe_in[2];   // Para escribir al CGI (stdin)
-    int _pipe_out[2];  // Para leer del CGI (stdout)
+    int _pipe_in[2];
+    int _pipe_out[2];
     
 public:
     CGI(const HttpRequest &request, const Location &location);
     ~CGI();
     
-    // Métodos principales
     bool execute();
     std::string getOutput() const { return _output; }
     int getStatusCode() const { return _status_code; }
     
 private:
-    // Preparación
     bool findScriptPath();
     bool findCGIExecutor();
     void setupEnvironment();
     
-    // Ejecución
     bool createPipes();
     bool executeCGI();
     void closePipes();
     
-    // Lectura/Escritura
     bool writeRequestBody();
     bool readCGIOutput();
     
-    // Parsing de salida
     void parseCGIOutput();
 };

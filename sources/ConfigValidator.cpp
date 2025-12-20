@@ -72,12 +72,10 @@ bool ConfigValidator::isValidDirective(const std::string &directive, bool isLoca
 bool ConfigValidator::isValidPath(const std::string &path) const {
     if (path.empty())
         return false;
-    // Verificar caracteres válidos en path
     for (size_t i = 0; i < path.length(); ++i) {
         char c = path[i];
         if (!isalnum(c) && c != '/' && c != '_' && c != '-' && c != '.' && c != '~' && c != ' ') // Añadido espacio para evitar erro en cgi_path
         {
-            //std::cout << "Invalid character in path: " << c << std::endl;
             return false;
         }
     }
@@ -88,7 +86,6 @@ bool ConfigValidator::isValidIP(const std::string &ip) const {
     if (ip == "0.0.0.0" || ip == "127.0.0.1" || ip == "localhost")
         return true;
     
-    // Validar formato básico de IP (a.b.c.d) usando std::string
     std::string temp = ip;
     std::vector<int> parts;
     size_t pos = 0;
@@ -106,7 +103,6 @@ bool ConfigValidator::isValidIP(const std::string &ip) const {
         pos = found + 1;
     }
     
-    // Procesar la última parte
     std::string lastPart = temp.substr(pos);
     std::istringstream iss(lastPart);
     int num;
@@ -116,7 +112,6 @@ bool ConfigValidator::isValidIP(const std::string &ip) const {
         return false;
     parts.push_back(num);
     
-    // Debe haber exactamente 4 partes
     return parts.size() == 4;
 }
 
@@ -139,13 +134,12 @@ std::vector<int> ConfigValidator::parseErrorPages(const std::string &codes) cons
     
     while (iss >> token) {
         if (token[0] == '/')
-            continue; // Es el path
+            continue;
         
-        // Validar que sea un número
         std::istringstream numCheck(token);
         int code;
         if (!(numCheck >> code) || !numCheck.eof()) {
-            continue; // No es un número, ignorar
+            continue;
         }
         
         if (!isValidHttpCode(code)) {
@@ -163,7 +157,6 @@ void ConfigValidator::validateListen(const std::string &value, ServerConfig &ser
     
     size_t colonPos = value.find(':');
     if (colonPos == std::string::npos) {
-        // Sólo puerto, sin host
         parsePort(value);
         return;
     }
@@ -179,7 +172,7 @@ void ConfigValidator::validateListen(const std::string &value, ServerConfig &ser
         throw std::invalid_argument("Error: invalid IP address: " + host);
     }
     
-    parsePort(portStr); // Lanza excepción si es inválido
+    parsePort(portStr);
 }
 
 void ConfigValidator::validateHost(const std::string &value) {
@@ -197,15 +190,12 @@ void ConfigValidator::validateServerName(const std::string &value) {
         throw std::invalid_argument("Error: server_name cannot be empty");
     }
     
-    // server_name puede contener múltiples nombres separados por espacios
     std::istringstream iss(value);
     std::string name;
     
     while (iss >> name) {
-        // Validar cada nombre individualmente
         for (size_t i = 0; i < name.length(); ++i) {
             char c = name[i];
-            // Permitir letras, números, puntos, guiones y guiones bajos
             if (!isalnum(c) && c != '.' && c != '-' && c != '_') {
                 throw std::invalid_argument("Error: server_name contains invalid characters: " + name);
             }
@@ -226,7 +216,6 @@ void ConfigValidator::validateIndex(const std::string &value) {
     if (value.empty()) {
         throw std::invalid_argument("Error: index cannot be empty");
     }
-    // Index puede contener múltiples archivos separados por espacios
     std::istringstream iss(value);
     std::string file;
     while (iss >> file) {
@@ -236,12 +225,10 @@ void ConfigValidator::validateIndex(const std::string &value) {
     }
 }
 
-void ConfigValidator::validateClientMaxBodySize(const std::string &value) {
+void ConfigValidator::validateClientMaxBodySize(const std::string &value, ServerConfig &serverConfig) {
     if (value.empty()) {
         throw std::invalid_argument("Error: client_max_body_size cannot be empty");
     }
-    
-    // Parsear valor con unidad (1M, 10K, 100, etc)
     std::string numStr = value;
     char unit = '\0';
     
@@ -260,6 +247,17 @@ void ConfigValidator::validateClientMaxBodySize(const std::string &value) {
     // Validar unidades conocidas
     if (unit != '\0' && unit != 'M' && unit != 'K' && unit != 'G') {
         throw std::invalid_argument("Error: invalid unit in client_max_body_size (use M, K, G)");
+    } else {
+        if (unit == 'K')
+            size *= 1024;
+        else if (unit == 'M')
+            size *= 1024 * 1024;
+        else if (unit == 'G')
+            size *= 1024 * 1024 * 1024;
+        
+        std::ostringstream oss;
+        oss << size;
+        serverConfig.setDirective("client_max_body_size", oss.str());
     }
 }
 
@@ -282,13 +280,10 @@ void ConfigValidator::validateErrorPage(const std::string &value) {
     if (value.empty()) {
         throw std::invalid_argument("Error: error_page cannot be empty");
     }
-    
-    // Formato: "404 /404.html" o "500 502 503 /50x.html"
     size_t lastSpace = value.rfind(' ');
     if (lastSpace == std::string::npos) {
         throw std::invalid_argument("Error: error_page format invalid (needs code and path)");
     }
-    
     std::string path = value.substr(lastSpace + 1);
     if (path.empty() || path[0] != '/') {
         throw std::invalid_argument("Error: error_page path must start with /");
@@ -296,14 +291,12 @@ void ConfigValidator::validateErrorPage(const std::string &value) {
     if (!isValidPath(path)) {
         throw std::invalid_argument("Error: error_page path contains invalid characters");
     }
-    
-    // Validar que haya al menos un código de error antes del path
     std::string codesStr = value.substr(0, lastSpace);
     if (codesStr.empty()) {
         throw std::invalid_argument("Error: error_page needs at least one HTTP status code");
     }
     
-    parseErrorPages(value); // Valida códigos
+    parseErrorPages(value);
 }
 
 void ConfigValidator::validateAutoindex(const std::string &value) {
@@ -319,7 +312,6 @@ void ConfigValidator::validateCgiPath(const std::string &value) {
     if (!isValidPath(value)) {
         throw std::invalid_argument("Error: cgi_path contains invalid characters");
     }
-    // Opcional: comprobar si el ejecutable existe
     struct stat buffer;
     if (stat(value.c_str(), &buffer) != 0) {
         std::cerr << "Warning: cgi_path does not exist or is not accessible: " << value << std::endl;
@@ -348,24 +340,20 @@ void ConfigValidator::validateRedirect(const std::string &value) {
     std::string codeStr = value.substr(0, spacePos);
     std::string url = value.substr(spacePos + 1);
     
-    // Validar código
     std::istringstream iss(codeStr);
     int code;
     if (!(iss >> code) || !iss.eof()) {
         throw std::invalid_argument("Error: redirect code must be a number");
     }
     
-    // Códigos de redirección válidos
     if (code != 301 && code != 302 && code != 303 && code != 307 && code != 308) {
         throw std::invalid_argument("Error: redirect code must be 301, 302, 303, 307, or 308");
     }
     
-    // Validar URL (puede ser ruta local o URL completa)
     if (url.empty()) {
         throw std::invalid_argument("Error: redirect URL cannot be empty");
     }
     
-    // Aceptar rutas que empiezan con / (rutas locales) o URLs completas (http://, https://)
     if (url[0] != '/' && url.substr(0, 7) != "http://" && url.substr(0, 8) != "https://") {
         throw std::invalid_argument("Error: redirect URL must be absolute path (/) or full URL (http://)");
     }
@@ -375,35 +363,25 @@ void ConfigValidator::validateReturn(const std::string &value) {
     if (value.empty()) {
         throw std::invalid_argument("Error: return cannot be empty");
     }
-    
-    // return puede tener dos formatos:
-    // 1. "code" - solo código HTTP
-    // 2. "code path" - código y ruta
     std::istringstream iss(value);
     std::string codeStr;
     iss >> codeStr;
     
-    // Validar código
     std::istringstream codeIss(codeStr);
     int code;
-    //std::cout << "Validating return code: " << codeStr << std::endl;
     if (!(codeIss >> code) || !codeIss.eof()) {
         throw std::invalid_argument("Error: return code must be a number");
     }
     
-    // Códigos HTTP válidos
     if (code < 100 || code > 599) {
         throw std::invalid_argument("Error: return code must be valid HTTP status code (100-599)");
     }
     
-    // Si hay más texto, validar que sea una ruta o URL válida
     std::string path;
     if (iss >> path) {
         if (path.empty()) {
             throw std::invalid_argument("Error: return path cannot be empty");
-        }
-        
-        // Aceptar rutas que empiezan con / (rutas locales) o URLs completas
+        }   
         if (path[0] != '/' && path.substr(0, 7) != "http://" && path.substr(0, 8) != "https://") {
             throw std::invalid_argument("Error: return path must be absolute path (/) or full URL (http://)");
         }
@@ -430,7 +408,7 @@ void ConfigValidator::validateDirective(const std::string &key, const std::strin
     else if (key == "index")
         validateIndex(value);
     else if (key == "client_max_body_size")
-        validateClientMaxBodySize(value);
+        validateClientMaxBodySize(value, serverConfig);
     else if (key == "allowed_methods")
         validateAllowedMethods(value);
     else if (key == "error_page")
@@ -444,16 +422,12 @@ void ConfigValidator::validateDirective(const std::string &key, const std::strin
     else if (key == "redirect")
         validateRedirect(value);
     else if (key == "return")
-    {
-        //std::cout << "Validating return directive: " << value << std::endl;
         validateReturn(value);
-    }
 }
 
 void ConfigValidator::validateServerConfig(ServerConfig &server) {
     std::map<std::string, std::string> directives = server.getAllDirectives();
     
-    // Validar que existan directivas obligatorias
     if (directives.find("listen") == directives.end()) {
         throw std::invalid_argument("Error: 'listen' directive is mandatory in server block");
     }
@@ -461,13 +435,10 @@ void ConfigValidator::validateServerConfig(ServerConfig &server) {
     if (directives.find("root") == directives.end()) {
         throw std::invalid_argument("Error: 'root' directive is mandatory in server block");
     }
-    
-    // Validar todas las directivas
     for (std::map<std::string, std::string>::const_iterator it = directives.begin(); it != directives.end(); ++it) {
         validateDirective(it->first, it->second, false, server);
     }
     
-    // Validar locations
     std::vector<Location> locations = server.getLocations();
     for (size_t i = 0; i < locations.size(); ++i) {
         validateLocation(locations[i], server);
@@ -481,7 +452,6 @@ void ConfigValidator::validateLocation(Location &location, ServerConfig &serverC
     
     std::map<std::string, std::string> directives = location.getAllDirectives();
     
-    // Validar todas las directivas de location
     for (std::map<std::string, std::string>::const_iterator it = directives.begin(); it != directives.end(); ++it) {
         validateDirective(it->first, it->second, true, serverConfig);
     }
@@ -497,7 +467,6 @@ void ConfigValidator::validateServers(std::vector<ServerConfig> &servers) {
     for (size_t i = 0; i < servers.size(); ++i) {
         validateServerConfig(servers[i]);
         
-        // Validar puertos duplicados
         std::string listen = servers[i].getDirective("listen");
         if (listenPorts.find(listen) != listenPorts.end()) {
             throw std::invalid_argument("Error: duplicate listen directive: " + listen);

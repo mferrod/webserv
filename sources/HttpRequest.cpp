@@ -80,8 +80,6 @@ bool HttpRequest::isValidMethod(const std::string &method) const
 
 bool HttpRequest::isImplementedMethod(const std::string &method) const
 {
-	// Check config file for implemented methods
-	// HEAD is implemented as GET without body
 	const std::string implemented_methods[] = {
 		"GET", "HEAD", "POST", "DELETE"
 	};
@@ -157,7 +155,6 @@ bool HttpRequest::isValidPath(const std::string &path)
 	return true;
 }
 
-// Decodes percent-encoded characters in the path
 std::string HttpRequest::normalizePath(const std::string &path) const
 {
 	std::string normalized = path;
@@ -225,7 +222,7 @@ bool HttpRequest::isValidVersion(const std::string &version)
 		else
 		{
 			_valid_request = false;
-			_status_code = 505; // HTTP Version Not Supported
+			_status_code = 505;
 			std::cerr << "Invalid request: HTTP version not supported." << std::endl;
 			return false;
 		}
@@ -278,7 +275,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	if (!isValidMethod(_method))
 	{
 		_valid_request = false;
-		_status_code = 400;  // Invalid method
+		_status_code = 400;
 		std::cerr << "Invalid request: method not allowed." << std::endl;
 		return;
 	}
@@ -286,7 +283,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	if (!isImplementedMethod(_method))
 	{
 		_valid_request = false;
-		_status_code = 501;  // Not implemented method
+		_status_code = 501;
 		std::cerr << "Invalid request: method not implemented." << std::endl;
 		return;
 	}
@@ -323,7 +320,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 		_path = full_path.substr(0, full_path.find('?'));
 		_path_query = full_path.substr(full_path.find('?') + 1);
 	}
-	else if (full_path.find('#') != std::string::npos) // Handle fragments, ignore it or throw an error?
+	else if (full_path.find('#') != std::string::npos)
 	{
 		_path = full_path.substr(0, full_path.find('#'));
 		_path_fragment = full_path.substr(full_path.find('#') + 1);
@@ -348,7 +345,6 @@ void HttpRequest::parseRequestLine(const std::string &line)
 			_path_info = _path.substr(slash_pos);
 
 		_path = _path.substr(0, slash_pos);
-		std::cout << "Path: " << _path << std::endl;
 		if (_path.size() > 1 && _path[_path.size() - 1] == '/')
 			_path = _path.erase(_path.size() - 1);
 		
@@ -359,7 +355,6 @@ void HttpRequest::parseRequestLine(const std::string &line)
 			if (dot_pos != std::string::npos && dot_pos > slash_pos + 1)
 			{
 				_path_file = _path.substr(slash_pos + 1);
-				std::cout << "Path file: " << _path_file << std::endl;
 				if (_path.size() > _path_file.size())
 					_path_dir = _path.substr(0, slash_pos);
 			}
@@ -456,7 +451,6 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 			toLowerCase(header_name);
 			std::string trimmed_value = trim(header_value);
 			_headers[header_name] = trimmed_value;
-			//std::cout << "Header parsed: " << header_name << " => " << trimmed_value << std::endl; // For debugging
 		}
 		pos = line_end + 2;
 	}
@@ -528,8 +522,6 @@ void HttpRequest::parseChunkedBody(const std::string &body)
 
 void HttpRequest::parseBody(const std::string &body)
 {
-	//Check for server client max body size? (From config file)
-	//If exceeded, set _valid_request to false and _status_code to 413
 	if (_headers.find("transfer-encoding") != _headers.end())
 	{
 		if (_headers["transfer-encoding"].find_first_of("chunked") != std::string::npos)
@@ -577,8 +569,6 @@ void HttpRequest::parseBody(const std::string &body)
 	}
 	else if (_headers.find("content-length") == _headers.end())
 	{
-		// Only POST and PUT require Content-Length header
-		// GET, DELETE, and other methods without body can omit it
 		if (_method == "POST" || _method == "PUT")
 		{
 			_valid_request = false;
@@ -586,12 +576,11 @@ void HttpRequest::parseBody(const std::string &body)
 			std::cerr << "Invalid request: missing Content-Length." << std::endl;
 			return;
 		}
-		// For methods without body requirement (GET, DELETE), empty body is acceptable
 		_body = "";
 	}
 }
 
-void HttpRequest::checkBodySize(const ServerConfig &serverConfig) // Check value from client_max_body_size directive
+void HttpRequest::checkBodySize(const ServerConfig &serverConfig)
 {
 	try 
 	{

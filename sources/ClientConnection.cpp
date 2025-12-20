@@ -11,43 +11,31 @@
 ClientConnection::ClientConnection(int fd) 
 	: _fd(fd), _complete(false), _response_sent(false), _response_offset(0), _parsed(false) {}
 
-ClientConnection::~ClientConnection() {
-	// No cerrar automáticamente el FD - lo maneja ServerManager
-}
+ClientConnection::~ClientConnection() {}
 
 bool ClientConnection::readData() {
 	char buf[BUFFER_SIZE];
-	ssize_t bytesRead = recv(_fd, buf, BUFFER_SIZE - 1, 0); // -1 para null terminator
+	ssize_t bytesRead = recv(_fd, buf, BUFFER_SIZE - 1, 0);
 	
 	if (bytesRead < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			// No hay datos disponibles ahora, intentar después
 			return true;
 		}
-		// Error real
 		std::cerr << "Error en recv(): " << strerror(errno) << std::endl;
 		return false;
 	}
 	
 	if (bytesRead == 0) {
-		// Cliente cerró la conexión
 		std::cout << "Cliente cerró la conexión. FD: " << _fd << std::endl;
 		return false;
 	}
-
-	// Añadir datos al buffer
 	buf[bytesRead] = '\0';
 	_buffer.append(buf, bytesRead);
 
-	// Verificar si la petición HTTP está completa
 	if (_buffer.find("\r\n\r\n") != std::string::npos) {
 		_complete = true;
 		std::cout << "Petición HTTP completa recibida de FD " << _fd << std::endl;
-		// Debug: mostrar primeras líneas de la petición
 		size_t firstLine = _buffer.find("\r\n");
-		if (firstLine != std::string::npos) {
-			std::cout << "Primera línea: " << _buffer.substr(0, firstLine) << std::endl;
-		}
 	}
 	
 	return true;
@@ -77,32 +65,24 @@ bool ClientConnection::sendPartialResponse() {
 	
 	if (sent < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			// Socket no listo para escribir, intentar después
 			return false;
 		}
-		// Error real
 		std::cerr << "Error en send(): " << strerror(errno) << std::endl;
 		return false;
 	}
 	
 	if (sent == 0) {
-		// No se pudo enviar nada
 		return false;
 	}
 	
 	_response_offset += sent;
 	
-	// Verificar si se envió toda la respuesta
 	if (_response_offset >= _response_buffer.size()) {
 		_response_sent = true;
 		std::cout << "Respuesta completa enviada a FD " << _fd << std::endl;
 		return true;
 	}
-	
-	// Respuesta parcial enviada
-	std::cout << "Respuesta parcial enviada a FD " << _fd 
-			  << " (" << _response_offset << "/" << _response_buffer.size() << ")" << std::endl;
-	return false; // Aún hay datos por enviar
+	return false;
 }
 
 bool ClientConnection::parseRequest() {
@@ -116,9 +96,6 @@ bool ClientConnection::parseRequest() {
 }
 
 void ClientConnection::makeResponse(std::vector<ServerSocket> &servers) {
-	std::cout << "File path in request out: " << _request.getFile() << std::endl;
 	_response.handleRequest(servers);
-	_request.printRequest(); // For debugging
 	_response_buffer = _response.buildResponse();
-	std::cout << "Response: \n" << _response_buffer << std::endl;
 }
