@@ -7,7 +7,7 @@ std::string trim(const std::string &str)
 	return (first == std::string::npos) ? "" : str.substr(first, last - first + 1);
 }
 
-bool caseInsensitiveCompare(const std::string &a, const std::string &b) // comparación case-insensitive
+bool caseInsensitiveCompare(const std::string &a, const std::string &b) 
 {
 	if (a.size() != b.size())
 		return false;

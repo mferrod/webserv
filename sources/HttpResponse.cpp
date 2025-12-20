@@ -288,7 +288,7 @@ void HttpResponse::handleCGI() {
 				std::string key = line.substr(0, colon);
 				std::string value = line.substr(colon + 1);
 				
-				// Trim spaces
+			
 				size_t start = value.find_first_not_of(" \t\r\n");
 				size_t end = value.find_last_not_of(" \t\r\n");
 				if (start != std::string::npos) {
@@ -594,8 +594,6 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 			full_path = root;
 	}
 
-	std::cout << "[DELETE] Full path: " << full_path << std::endl; //??
-
 	struct stat file_stat;
 	if (stat(full_path.c_str(), &file_stat) != 0)
 	{
@@ -651,7 +649,7 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 	this->isAllowedMethod();
 	if (_request.isValidRequest())
 	{
-		if (_request.getMethod() == "GET" || _request.getMethod() == "HEAD") // HEAD same as GET but no body
+		if (_request.getMethod() == "GET" || _request.getMethod() == "HEAD")
 		{
 			handleGet(servers[server_index].getServerConfig());
 			if (_request.getMethod() == "HEAD")

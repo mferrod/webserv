@@ -173,7 +173,7 @@ void CGI::setupEnvironment() {
         _env_vars[key] = it->second;
     }
     
-    _env_vars["REMOTE_ADDR"] = "127.0.0.1"; // Placeholder??
+    _env_vars["REMOTE_ADDR"] = _request.getHost(); // Placeholder??
     std::cout << "CGI: Environment variables configured:" << std::endl;
     for (std::map<std::string, std::string>::iterator it = _env_vars.begin();
          it != _env_vars.end(); ++it) {
@@ -241,7 +241,7 @@ bool CGI::executeCGI() {
         
         execve(argv[0], argv, &envp[0]);
         
-        std::cerr << "CGI: Error en execve(): " << strerror(errno) << std::endl;
+        std::cerr << "CGI: Error en execve(): " << strerror(0) << std::endl;
         exit(1);
     }
     else {
@@ -324,12 +324,49 @@ bool CGI::readCGIOutput() {
     return true;
 }
 
-void CGI::parseCGIOutput() { // ????
+void CGI::parseCGIOutput() {
     size_t header_end = _output.find("\r\n\r\n");
     
     if (header_end == std::string::npos) {
+        _output.clear();
+        _status_code = 500;
         return;
     }
+    
+    std::string cgi_headers = _output.substr(0, header_end);
+    std::string cgi_body = _output.substr(header_end + 4);
+    
+    std::istringstream header_stream(cgi_headers);
+    std::string line;
+    
+    while (std::getline(header_stream, line)) {
+        if (!line.empty() && line[line.length() - 1] == '\r') {
+            line = line.substr(0, line.length() - 1);
+        }
+        
+        if (line.empty()) continue;
+        
+        size_t colon = line.find(':');
+        if (colon != std::string::npos) {
+            std::string key = line.substr(0, colon);
+            std::string value = line.substr(colon + 1);
+            
+            size_t start = value.find_first_not_of(" \t\r\n");
+            size_t end = value.find_last_not_of(" \t\r\n");
+            if (start != std::string::npos) {
+                value = value.substr(start, end - start + 1);
+            }
+            
+            if (key == "Status") {
+                int status_code = std::atoi(value.c_str());
+                if (status_code > 0) {
+                    _status_code = status_code;
+                }
+            }
+        }
+    }
+    
+    _output = cgi_body;
 }
 
 bool CGI::execute() {

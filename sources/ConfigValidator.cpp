@@ -32,7 +32,7 @@ void ConfigValidator::initializeValidDirectives() {
     _validDirectives.push_back("index");
     _validDirectives.push_back("client_max_body_size");
     _validDirectives.push_back("error_page");
-    _validDirectives.push_back("redirect");
+    _validDirectives.push_back("rewrite");
     _validDirectives.push_back("return");
 }
 
@@ -45,7 +45,7 @@ void ConfigValidator::initializeValidLocationDirectives() {
     _validLocationDirectives.push_back("upload_dir");
     _validLocationDirectives.push_back("client_max_body_size");
     _validLocationDirectives.push_back("error_page");
-    _validLocationDirectives.push_back("redirect"); // ¿Redirect or rewrite?
+    _validLocationDirectives.push_back("rewrite"); 
     _validLocationDirectives.push_back("return");
     _validLocationDirectives.push_back("cgi_ext");
     _validLocationDirectives.push_back("cgi_processing");

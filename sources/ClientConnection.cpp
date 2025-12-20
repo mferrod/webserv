@@ -35,7 +35,6 @@ bool ClientConnection::readData() {
 	if (_buffer.find("\r\n\r\n") != std::string::npos) {
 		_complete = true;
 		std::cout << "Petición HTTP completa recibida de FD " << _fd << std::endl;
-		size_t firstLine = _buffer.find("\r\n");
 	}
 	
 	return true;
