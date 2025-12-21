@@ -80,27 +80,80 @@ bool CGI::findCGIExecutor() {
         _status_code = 500;
         return false;
     }
-    
-    if (extension == ".bla") {
-        _cgi_executor = cgi_path;
-    }
-    else {
-        _cgi_executor = cgi_path;
-    }
-    
-    if (_cgi_executor.empty()) {
-        std::cerr << "CGI: No se encontró ejecutor" << std::endl;
-        _status_code = 500;
-        return false;
-    }
-    
-    if (access(_cgi_executor.c_str(), X_OK) != 0) {
-        std::cerr << "CGI: Ejecutor no existente o no ejecutable: " << _cgi_executor << std::endl;
-        _status_code = 500;
-        return false;
-    }
-    
-    return true;
+	if (!cgi_ext.empty() && cgi_ext.find(extension) == std::string::npos)
+	{
+
+		std::cerr << "CGI: Extensión no permitida: " << extension << std::endl;
+
+		_status_code = 403;
+
+		return false;
+	}
+
+	if (extension == ".py")
+	{
+
+		if (cgi_path.find("python") != std::string::npos)
+		{
+
+			size_t start = cgi_path.find("python");
+
+			size_t end = cgi_path.find(" ", start);
+
+			if (end == std::string::npos)
+				end = cgi_path.length();
+
+			while (start > 0 && cgi_path[start - 1] != ' ')
+				start--;
+
+			_cgi_executor = cgi_path.substr(start, end - start);
+		}
+	}
+
+	else if (extension == ".sh")
+	{
+
+		if (cgi_path.find("bash") != std::string::npos)
+		{
+
+			size_t start = cgi_path.find("bash");
+
+			size_t end = cgi_path.find(" ", start);
+
+			if (end == std::string::npos)
+				end = cgi_path.length();
+
+			while (start > 0 && cgi_path[start - 1] != ' ')
+				start--;
+
+			_cgi_executor = cgi_path.substr(start, end - start);
+		}
+	}
+
+	if (extension == ".bla")
+	{
+		_cgi_executor = cgi_path;
+	}
+	else
+	{
+		_cgi_executor = cgi_path;
+	}
+
+	if (_cgi_executor.empty())
+	{
+		std::cerr << "CGI: No se encontró ejecutor" << std::endl;
+		_status_code = 500;
+		return false;
+	}
+
+	if (access(_cgi_executor.c_str(), X_OK) != 0)
+	{
+		std::cerr << "CGI: Ejecutor no existente o no ejecutable: " << _cgi_executor << std::endl;
+		_status_code = 500;
+		return false;
+	}
+
+	return true;
 }
 
 void CGI::setupEnvironment() {
