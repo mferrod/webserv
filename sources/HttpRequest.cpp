@@ -16,6 +16,7 @@ HttpRequest::HttpRequest()
 	_valid_request = true;
 	_port = 0;
 	_host = "";
+	_target_location = Location();
 }
 
 HttpRequest::~HttpRequest() {}
@@ -33,6 +34,10 @@ HttpRequest::HttpRequest(const HttpRequest &other)
 	_status_code = other._status_code;
 	_port = other._port;
 	_host = other._host;
+	_path_dir = other._path_dir;
+	_path_file = other._path_file;
+	_path_info = other._path_info;
+	_target_location = other._target_location;
 }
 
 HttpRequest &HttpRequest::operator=(const HttpRequest &other)
@@ -50,6 +55,10 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &other)
 		_status_code = other._status_code;
 		_port = other._port;
 		_host = other._host;
+		_path_dir = other._path_dir;
+		_path_file = other._path_file;
+		_path_info = other._path_info;
+		_target_location = other._target_location;
 	}
 	return *this;
 }
@@ -71,9 +80,8 @@ bool HttpRequest::isValidMethod(const std::string &method) const
 
 bool HttpRequest::isImplementedMethod(const std::string &method) const
 {
-	// Check config file for implemented methods
 	const std::string implemented_methods[] = {
-		"GET", "POST", "DELETE"
+		"GET", "HEAD", "POST", "DELETE"
 	};
 
 	for (size_t i = 0; i < sizeof(implemented_methods) / sizeof(implemented_methods[0]); i++)
@@ -147,7 +155,6 @@ bool HttpRequest::isValidPath(const std::string &path)
 	return true;
 }
 
-// Decodes percent-encoded characters in the path
 std::string HttpRequest::normalizePath(const std::string &path) const
 {
 	std::string normalized = path;
@@ -215,7 +222,7 @@ bool HttpRequest::isValidVersion(const std::string &version)
 		else
 		{
 			_valid_request = false;
-			_status_code = 505; // HTTP Version Not Supported
+			_status_code = 505;
 			std::cerr << "Invalid request: HTTP version not supported." << std::endl;
 			return false;
 		}
@@ -268,7 +275,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	if (!isValidMethod(_method))
 	{
 		_valid_request = false;
-		_status_code = 400;  // Invalid method
+		_status_code = 400;
 		std::cerr << "Invalid request: method not allowed." << std::endl;
 		return;
 	}
@@ -276,7 +283,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 	if (!isImplementedMethod(_method))
 	{
 		_valid_request = false;
-		_status_code = 501;  // Not implemented method
+		_status_code = 501;
 		std::cerr << "Invalid request: method not implemented." << std::endl;
 		return;
 	}
@@ -313,7 +320,7 @@ void HttpRequest::parseRequestLine(const std::string &line)
 		_path = full_path.substr(0, full_path.find('?'));
 		_path_query = full_path.substr(full_path.find('?') + 1);
 	}
-	else if (full_path.find('#') != std::string::npos) // Handle fragments, ignore it or throw an error?
+	else if (full_path.find('#') != std::string::npos)
 	{
 		_path = full_path.substr(0, full_path.find('#'));
 		_path_fragment = full_path.substr(full_path.find('#') + 1);
@@ -444,7 +451,6 @@ void HttpRequest::parseHeaders(const std::string &header_lines)
 			toLowerCase(header_name);
 			std::string trimmed_value = trim(header_value);
 			_headers[header_name] = trimmed_value;
-			//std::cout << "Header parsed: " << header_name << " => " << trimmed_value << std::endl; // For debugging
 		}
 		pos = line_end + 2;
 	}
@@ -516,8 +522,6 @@ void HttpRequest::parseChunkedBody(const std::string &body)
 
 void HttpRequest::parseBody(const std::string &body)
 {
-	//Check for server client max body size? (From config file)
-	//If exceeded, set _valid_request to false and _status_code to 413
 	if (_headers.find("transfer-encoding") != _headers.end())
 	{
 		if (_headers["transfer-encoding"].find_first_of("chunked") != std::string::npos)
@@ -533,11 +537,11 @@ void HttpRequest::parseBody(const std::string &body)
 		}
 
 	}  
-	else if (_headers.find("Content-Length") != _headers.end())
+	else if (_headers.find("content-length") != _headers.end())
 	{
 		try 
 		{
-			size_t content_length = static_cast<size_t>(strtol(_headers["Content-Length"].c_str(), NULL, 10));
+			size_t content_length = static_cast<size_t>(strtol(_headers["content-length"].c_str(), NULL, 10));
 			
 			if (body.size() > content_length)
 			{
@@ -563,10 +567,8 @@ void HttpRequest::parseBody(const std::string &body)
 			return;
 		}
 	}
-	else if (_headers.find("Content-Length") == _headers.end())
+	else if (_headers.find("content-length") == _headers.end())
 	{
-		// Only POST and PUT require Content-Length header
-		// GET, DELETE, and other methods without body can omit it
 		if (_method == "POST" || _method == "PUT")
 		{
 			_valid_request = false;
@@ -574,12 +576,11 @@ void HttpRequest::parseBody(const std::string &body)
 			std::cerr << "Invalid request: missing Content-Length." << std::endl;
 			return;
 		}
-		// For methods without body requirement (GET, DELETE), empty body is acceptable
 		_body = "";
 	}
 }
 
-void HttpRequest::checkBodySize(const ServerConfig &serverConfig) // Check value from client_max_body_size directive
+void HttpRequest::checkBodySize(const ServerConfig &serverConfig)
 {
 	try 
 	{

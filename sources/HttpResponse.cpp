@@ -44,6 +44,9 @@ HttpResponse::HttpResponse(const HttpRequest &req)
 
 void HttpResponse::isAllowedMethod()
 {
+	if (_status_code >= 400)
+		return;
+	
 	std::string allowed_methods = _request.getTargetLocation().getDirective("allowed_methods");
 	if (allowed_methods.find(_request.getMethod()) == std::string::npos)
 	{
@@ -58,7 +61,7 @@ void HttpResponse::checkClientMaxBodySize()
 	std::string max_body_size_str = _request.getTargetLocation().getDirective("client_max_body_size");
 	if (!max_body_size_str.empty())
 	{
-		size_t max_body_size = static_cast<size_t>(strtol(max_body_size_str.c_str(), NULL, 10)); // Convert value to size_t
+		size_t max_body_size = static_cast<size_t>(strtol(max_body_size_str.c_str(), NULL, 10));
 		if (_request.getBody().size() > max_body_size)
 		{
 			_status_code = 413;
@@ -81,9 +84,22 @@ void HttpResponse::handleTargetLocation(const ServerConfig &server_config)
 			if (loc.getPath()[j] == '/' && loc.getPath()[j + 1] != '\0')
 				size++;
 		}
+		std::string extension;
+		size_t dot_pos = _request.getPath().find_last_of('.');
+			if (dot_pos != std::string::npos)
+				extension = _request.getPath().substr(dot_pos + 1);
+		if (extension == "bla" && loc.getPath() == "~ \\.bla$" && _request.getMethod() == "POST")
+		{
+			target_location = loc;
+			_request.setTargetLocation(target_location);
+			return;
+		}	
+
 		size_t match_index = _request.getPath().find(loc.getPath());
-		if (match_index != std::string::npos && (_request.getPath()[match_index + loc.getPath().length()] == '/' || match_index + loc.getPath().length() == '\0')
-		&& size > max_match)
+		if (match_index != std::string::npos && 
+		    (match_index + loc.getPath().length() == _request.getPath().length() || 
+		     _request.getPath()[match_index + loc.getPath().length()] == '/') &&
+		    size > max_match)
 		{
 			max_match = size;
 			target_location = loc;
@@ -102,25 +118,36 @@ void HttpResponse::redirection(std::string url)
 
 void HttpResponse::readFile(const std::string &file_path)
 {
-	//std::cout << "Attempting to read file: " << file_path << std::endl;
 	std::ifstream file(file_path.c_str());
-	//std::cerr << "Reading file: " << file_path << std::endl;
+	std::cerr << "Reading file: " << file_path << std::endl;
+	std::string extension;
+	extension = file_path.substr(file_path.find_last_of('.') + 1);
+	if (extension != "html")
+	{
+		_status_code = 200;
+	}
+	if (access(file_path.c_str(), R_OK) != 0)
+	{
+		_status_code = 404;
+		_request.setValidRequest(false);
+		return;
+	}	
+	_status_code = 200;
+	std::ostringstream ss;
+	std::ostringstream oss;
 	if (!file.is_open())
 	{
 		_status_code = 404;
 		_request.setValidRequest(false);
 		return;
 	}
-	std::ostringstream ss;
-	std::ostringstream oss;
-
 	ss << file.rdbuf();
 	_body = ss.str();
 	_status_code = 200;
 	oss << _body.size();
 	_headers["Content-Length"] = oss.str();
 	_headers["Content-Type"] = getMimeType(file_path);
-	_headers["Connection"] = "close"; // Close connection or keep-alive?
+	_headers["Connection"] = "close";
 	file.close();
 	return;
 }
@@ -130,47 +157,86 @@ void HttpResponse::makeAutoindex()
 	DIR *dir;
 	struct dirent *entry;
 	std::string html_page;
-	std::string path = _request.getTargetLocation().getPath();
-	std::string current_path = _request.getTargetLocation().getDirective("root") + "/" + _request.getPath().substr(_request.getTargetLocation().getPath().length());
-	std::string root_path = _request.getTargetLocation().getDirective("root");
-
-	if (path[path.length() - 1] == '/')
-		path = path.erase(path.length() - 1);
-	if (current_path[current_path.length() - 1] == '/')
-		current_path = current_path.erase(current_path.length() - 1);
+	std::string requested_path = _request.getPath();
+	std::string location_path = _request.getTargetLocation().getPath();
+	std::string root = _request.getTargetLocation().getDirective("root");
+	
+	if (root.empty())
+		root = "";
+	
+	std::string relative_path = requested_path;
+	if (!_request.getTargetLocation().getDirective("root").empty() && 
+	    relative_path.find(location_path) == 0)
+	{
+		relative_path = relative_path.substr(location_path.length());
+	}
+	
+	if (!relative_path.empty() && relative_path[0] == '/')
+		relative_path = relative_path.substr(1);
+	
+	std::string current_path;
+	if (root.empty())
+		root = ".";
+	
+	if (root == "." || root == "./")
+		current_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
+	else if (root == "/")
+		current_path = "/" + relative_path;
+	else
+		current_path = root + "/" + relative_path;
+	
+	if (current_path.length() > 1 && current_path[current_path.length() - 1] == '/')
+		current_path = current_path.substr(0, current_path.length() - 1);
+		
 	if ((dir = opendir(current_path.c_str())) != NULL)
 	{
-		html_page = "<html><head><title>Index of " + path + "</title></head><body>";
-		std::string full_path = path + "/" + current_path.substr(root_path.length());
-		if (full_path[full_path.length() - 1] == '/')
-			full_path = full_path.erase(full_path.length() - 1);
-		html_page += "<h1>Index of " + full_path + "</h1><ul>";
+		std::string display_path = requested_path;
+		if (display_path.length() > 1 && display_path[display_path.length() - 1] == '/')
+			display_path = display_path.substr(0, display_path.length() - 1);
+		
+		html_page = "<html><head><title>Index of " + display_path + "</title></head><body>";
+		html_page += "<h1>Index of " + display_path + "/</h1><ul>";
 		
 		while ((entry = readdir(dir)) != NULL)
 		{
 			std::string entry_name = entry->d_name;
-			if (entry_name != "." && entry_name != "..")
-				full_path  += "/" + entry_name;
-			else
-				full_path = entry_name;
-
-			struct stat	entry_stat;
-			stat(full_path.c_str(), &entry_stat);
-			if (S_ISDIR(entry_stat.st_mode) && entry->d_type != DT_REG)
-				html_page += "<li><a href=\"" + full_path + "\">" + "\t" +entry_name + "/" + "</a></li>";
-			else if (entry->d_type == DT_REG)
+			std::string entry_path;
+			
+			if (entry_name == ".")
 			{
-				std::string extension;
-				size_t dot_pos = entry_name.find_last_of('.');
-				if (dot_pos != std::string::npos)
-					extension = entry_name.substr(dot_pos + 1);
-				if (extension == "html") // Add more file types if implemented after cgi implementation
-					html_page += "<li><a href=\"" + full_path + "\">" + "    " + entry_name + "</a></li>";
+				entry_path = "./";
+			}
+			else if (entry_name == "..")
+			{
+				entry_path = "../";
+			}
+			else
+			{
+				std::string full_filesystem_path = current_path + "/" + entry_name;
+				struct stat entry_stat;
+				stat(full_filesystem_path.c_str(), &entry_stat);
+				
+				if (S_ISDIR(entry_stat.st_mode))
+				{
+					entry_path = entry_name + "/";
+				}
 				else
-					html_page += "<li>    " + entry_name + "</li>";
-			}	
-
+				{
+					entry_path = entry_name;
+				}
+			}
+			
+			std::string url_path;
+			if (entry_name == ".")
+				url_path = "./";
+			else if (entry_name == "..")
+				url_path = "../";
+			else
+				url_path = entry_name;
+			
+			html_page += "<li><a href=\"" + url_path + "\">" + entry_path + "</a></li>";
 		}
+		
 		html_page += "</ul></body></html>";
 		closedir(dir);
 		_status_code = 200;
@@ -181,33 +247,162 @@ void HttpResponse::makeAutoindex()
 		oss << _body.size();
 		_headers["Content-Length"] = oss.str();
 	}
-	else
+	else if (_request.isValidRequest())
 	{
 		_status_code = 404;
+		_request.setValidRequest(false);
 		makeErrorResponse();
 	}
 	return;
 }
 
+void HttpResponse::handleCGI() {	
+	CGI cgi(_request, _request.getTargetLocation());
+	
+	if (!cgi.execute()) {
+		_status_code = cgi.getStatusCode();
+		makeErrorResponse();
+		return;
+	}
+	
+	std::string cgi_output = cgi.getOutput();
+	
+	size_t header_end = cgi_output.find("\r\n\r\n");
+	
+	if (header_end != std::string::npos) {
+		std::string cgi_headers = cgi_output.substr(0, header_end);
+		std::string cgi_body = cgi_output.substr(header_end + 4);
+		
+		std::istringstream header_stream(cgi_headers);
+		std::string line;
+		
+		while (std::getline(header_stream, line)) {
+			if (!line.empty() && line[line.length() - 1] == '\r') {
+				line = line.substr(0, line.length() - 1);
+			}
+			
+			if (line.empty()) continue;
+			
+			size_t colon = line.find(':');
+			if (colon != std::string::npos) {
+				std::string key = line.substr(0, colon);
+				std::string value = line.substr(colon + 1);
+				
+			
+				size_t start = value.find_first_not_of(" \t\r\n");
+				size_t end = value.find_last_not_of(" \t\r\n");
+				if (start != std::string::npos) {
+					value = value.substr(start, end - start + 1);
+				}
+				
+				_headers[key] = value;
+			}
+		}
+		
+		_body = cgi_body;
+		_status_code = 200;
+		
+		if (_headers.find("Content-Length") == _headers.end()) {
+			std::ostringstream ss;
+			ss << _body.size();
+			_headers["Content-Length"] = ss.str();
+		}
+	} else {
+		_body = cgi_output;
+		_status_code = 200;
+		_headers["Content-Type"] = "text/html";
+		std::ostringstream ss;
+		ss << _body.size();
+		_headers["Content-Length"] = ss.str();
+	}
+	
+	_reason = getReason();
+}
+
 void HttpResponse::handleGet(const ServerConfig &server_config)
 {
 	Location target_location = _request.getTargetLocation();
+
 	if (!target_location.getDirective("rewrite").empty())
 	{
 		redirection(target_location.getDirective("rewrite"));
 		makeErrorResponse();
 		return;
 	}
-
+	std::string requested_path = _request.getPath();
+	if (!requested_path.empty() && requested_path[requested_path.length() - 1] != '/')
+	{
+		std::string check_path;
+		std::string root = target_location.getDirective("root");
+		if (root.empty())
+			root = target_location.getDirective("root");
+		
+		std::string relative_path = requested_path;
+		if (!target_location.getDirective("root").empty() && 
+		    relative_path.find(target_location.getPath()) == 0)
+		{
+			relative_path = relative_path.substr(target_location.getPath().length());
+		}
+		if (!relative_path.empty() && relative_path[0] == '/')
+			relative_path = relative_path.substr(1);
+		
+		if (root == "./" || root == ".")
+			check_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
+		else
+			check_path = root + "/" + relative_path;
+		struct stat path_stat;
+		if (stat(check_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
+		{
+			_status_code = 301;
+			_headers["Location"] = requested_path + "/";
+			_reason = getReason();
+			_body.clear();
+			_headers["Content-Length"] = "0";
+			return;
+		}
+	}
+	
 	if (_request.getFile().empty())
 	{
+		if (_request.getPath() != target_location.getPath())
+		{
+			std::string root = target_location.getDirective("root");
+			if (root.empty())
+				root = server_config.getDirective("root");
+			
+			std::string relative_path = _request.getPath();
+			std::string location_path = target_location.getPath();
+			if (!target_location.getDirective("root").empty() && 
+			    relative_path.find(location_path) == 0)
+			{
+				relative_path = relative_path.substr(location_path.length());
+			}
+			
+			if (!relative_path.empty() && relative_path[0] == '/')
+				relative_path = relative_path.substr(1);
+			
+			std::string full_path;
+			if (root == "./" || root == ".")
+				full_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
+			else if (root.empty() || root == "/")
+				full_path = "/" + relative_path;
+			else
+				full_path = root + "/" + relative_path;
+			
+			struct stat file_stat;
+			if (stat(full_path.c_str(), &file_stat) != 0)
+			{
+				_status_code = 404;
+				makeErrorResponse();
+				return;
+			}
+		}
+		
 		if (target_location.getDirective("index") == "")
 		{
 			if (server_config.getDirective("index").empty() == false)
 			{
 				_request.setPathFile(server_config.getDirective("index"));
-				//std::cout << "Using server index file: " << server_config.getDirective("index") << std::endl;
-				//std::cout << "Request path file: " << _request.getFile() << std::endl;
 			}
 
 			else
@@ -237,16 +432,41 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 	if (target_location.getDirective("cgi_processing") == "")
 	{
 		std::string full_path;
-		//std::cout << "Server root directive: " << server_config.getDirective("root") << std::endl;
-		if (server_config.getDirective("root") == "./") // Intento de solucionar problema con ruta
+		std::string root = target_location.getDirective("root");
+		
+		if (root.empty())
+			root = server_config.getDirective("root");
+		
+		std::string relative_path = _request.getPath();
+		
+		std::string location_path = target_location.getPath();
+		if (!target_location.getDirective("root").empty() && 
+		    relative_path.find(location_path) == 0)
 		{
-			full_path = _request.getFile();
-			//std::cout << "Server root is '/', using file path directly: " << full_path << std::endl;
-		}	
+			relative_path = relative_path.substr(location_path.length());
+		}
+		
+		if (!_request.getFile().empty())
+		{
+			size_t last_slash = relative_path.find_last_of('/');
+			if (last_slash != std::string::npos)
+				relative_path = relative_path.substr(0, last_slash + 1) + _request.getFile();
+			else
+				relative_path = _request.getFile();
+		}
+		
+		if (!relative_path.empty() && relative_path[0] == '/')
+			relative_path = relative_path.substr(1);
+		
+		if (root == "./" || root == ".")
+			full_path = root + (root[root.length()-1] == '/' ? "" : "/") + relative_path;
+		else if (root.empty() || root == "/")
+			full_path = "/" + relative_path;
 		else
-			full_path = target_location.getDirective("root") + "/" + _request.getPath().substr(target_location.getPath().length()) + "/" + _request.getFile();
+			full_path = root + "/" + relative_path;
+		
 		readFile(full_path);
-		if (_status_code == 404)
+		if (_status_code == 404 || _status_code == 406)
 		{
 			if (target_location.getDirective("autoindex") == "on")
 			{
@@ -261,12 +481,24 @@ void HttpResponse::handleGet(const ServerConfig &server_config)
 		}
 		return;
 	}
-	/* else
-		cgiExec(); // Not implemented yet */
+	else
+	{
+		handleCGI();
+		return;
+	}
 }
 
 void HttpResponse::handlePost()
 {
+	Location target_location = _request.getTargetLocation();
+	
+	if (target_location.getDirective("cgi_processing") == "on" || 
+	    !target_location.getDirective("cgi_path").empty())
+	{
+		handleCGI();
+		return;
+	}
+
 	if (_request.getBody().empty())
 	{
 		_status_code = 400;
@@ -274,8 +506,10 @@ void HttpResponse::handlePost()
 		makeErrorResponse();
 		return;
 	}
-	std::string filename = "upload_" + std::to_string(std::time(0)) + ".txt";
-	Location target_location = _request.getTargetLocation();
+	
+	std::ostringstream filename_ss;
+	filename_ss << "upload_" << time(NULL) << ".txt";
+	std::string filename = filename_ss.str();
 	std::string filepath;
 	if (target_location.getDirective("upload_dir") != "")
 	{
@@ -308,18 +542,14 @@ void HttpResponse::handlePost()
 	std::ostringstream oss;
 	oss << _body.size();
 	_headers["Content-Length"] = oss.str();
-	_headers["Connection"] = "close"; // Close connection or keep-alive?
+	_headers["Connection"] = "close";
 	return;
-	// Add multipart/form-data support?
-	// Add cgi processing for post?
-	// Validate content-type header?
 }
 
 void HttpResponse::handleDelete(const ServerConfig &server_config)
 {
 	Location target_location = _request.getTargetLocation();
 	
-	// Check if redirection is configured
 	if (!target_location.getDirective("rewrite").empty())
 	{
 		redirection(target_location.getDirective("rewrite"));
@@ -327,29 +557,30 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 		return;
 	}
 
-	// Construir la ruta completa al recurso
 	std::string full_path;
 	std::string root = target_location.getDirective("root");
 	std::string relative_path = _request.getPath();
 	
-	// Si el root de la location está vacío, usar el root del servidor
 	if (root.empty())
 		root = server_config.getDirective("root");
 	
-	// Eliminar la barra inicial del path si está presente
+	std::string location_path = target_location.getPath();
+	if (!target_location.getDirective("root").empty() && 
+	    relative_path.find(location_path) == 0)
+	{
+		relative_path = relative_path.substr(location_path.length());
+	}
+	
 	if (!relative_path.empty() && relative_path[0] == '/')
 		relative_path = relative_path.substr(1);
 	
-	// Manejar la ruta root
 	if (root.empty() || root == "/")
 		full_path = "/" + relative_path;
 	else
 	{
-		// Eliminar barra final del root (pero mantener "./" tal cual)
 		if (root.length() > 2 && root[root.length() - 1] == '/')
 			root = root.substr(0, root.length() - 1);
 		
-		// Construir la ruta completa al recurso
 		if (!relative_path.empty())
 		{
 			if (root == ".")
@@ -363,7 +594,6 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 			full_path = root;
 	}
 
-	// Verificamos si el recurso existe
 	struct stat file_stat;
 	if (stat(full_path.c_str(), &file_stat) != 0)
 	{
@@ -372,16 +602,13 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 		return;
 	}
 
-	// Verificamos si es un directorio
 	if (S_ISDIR(file_stat.st_mode))
 	{
-		// Devolvemos 403 Forbidden para directorios
 		_status_code = 403;
 		makeErrorResponse();
 		return;
 	}
 
-	// Verificamos si tenemos permisos de escritura
 	if (access(full_path.c_str(), W_OK) != 0)
 	{
 		_status_code = 403;
@@ -389,17 +616,13 @@ void HttpResponse::handleDelete(const ServerConfig &server_config)
 		return;
 	}
 
-	// Intentar eliminar el archivo
 	if (remove(full_path.c_str()) != 0)
 	{
-		// Si al borrarfalla, devolver 500
 		_status_code = 500;
 		makeErrorResponse();
 		return;
 	}
 
-	// Archivo eliminado correctamente
-	// Devolver 204 No Content (estándar para DELETE exitoso sin cuerpo de respuesta)
 	_status_code = 204;
 	_reason = getReason();
 	_body.clear();
@@ -417,22 +640,22 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 		ss >> port;
 		if (servers[server_index].getPort() == port)
 		{
-			/* if (!servers[server_index].getServerConfig().getDirective("server_name").empty() 
-			&& servers[server_index].getServerConfig().getDirective("server_name") != _request.getHost())
-				continue; */
-			//if //Check client ip against host configuration
 			break;
 		}
 			
 	}
 	handleTargetLocation(servers[server_index].getServerConfig());
 	checkClientMaxBodySize();
-	isAllowedMethod();
+	this->isAllowedMethod();
 	if (_request.isValidRequest())
 	{
-		if (_request.getMethod() == "GET") // Check method implementation
+		if (_request.getMethod() == "GET" || _request.getMethod() == "HEAD")
 		{
 			handleGet(servers[server_index].getServerConfig());
+			if (_request.getMethod() == "HEAD")
+			{
+				_body = "";
+			}
 		}
 		else if (_request.getMethod() == "POST")
 		{
@@ -442,18 +665,11 @@ void HttpResponse::handleRequest(std::vector<ServerSocket> &servers)
 		{
 			handleDelete(servers[server_index].getServerConfig());
 		}
-		/* else //Necessary?
-		{
-			makeErrorResponse();
-		} */
 	}
 	else
 	{
 		makeErrorResponse();
 	}
-	//std::cout << "Response built with status code: " << _status_code << std::endl;
-	//std::cout << "Response body size: " << _body.size() << " bytes" << std::endl;
-	//std::cout << "Response body: " << std::endl << _body << std::endl;
 }
 
 std::string HttpResponse::getReason()
@@ -486,8 +702,6 @@ std::string HttpResponse::getReason()
 
 void HttpResponse::makeErrorResponse()
 {
-	// If _status_code is already set (e.g., by handleDelete), use it
-	// Otherwise, get it from the request
 	if (_status_code == 0 || _status_code == 200)
 		_status_code = _request.getStatusCode();
 	_reason = getReason();
@@ -514,7 +728,6 @@ std::string HttpResponse::buildResponse()
 	{
 		response += it->first + ": " + it->second + "\r\n";
 	}
-
 	response += "\r\n";
 	response += _body;
 

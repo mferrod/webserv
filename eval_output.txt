@@ -1,0 +1,162 @@
+[0;36m==========================================
+    🔍 WEBSERV EVALUATION - 42 SCHOOL
+==========================================[0m
+
+
+[0;35m============================================================[0m
+[1;37mWEBSERV PROJECT EVALUATION[0m
+[0;35m============================================================[0m
+
+[1;37mEvaluating project with:[0m
+[1;37m  - Config: configs/evaluation.conf[0m
+[1;37m  - Port: 8080[0m
+[1;37m  - I/O Multiplexing: poll()[0m
+
+[0;36m🧹 Cleaning up any hanging processes...[0m
+[0;32m✅ Cleanup completed[0m
+
+[0;34m🔍 Prerequisites Check[0m
+[0;36m------------------------------------------------------------[0m
+[1;33m📋 TEST: Checking if project compiles[0m
+[0;32m✅ RESULT: Project compiles successfully without warnings/errors[0m
+[1;33m📋 TEST: Checking webserv executable exists[0m
+[0;32m✅ RESULT: webserv executable found[0m
+[1;33m📋 TEST: Checking configuration file exists[0m
+[0;32m✅ RESULT: Configuration file configs/evaluation.conf found[0m
+[1;33m📋 TEST: Checking YoupyBanane directory structure[0m
+[0;32m✅ RESULT: YoupyBanane directory structure correct[0m
+[1;33m📋 TEST: Checking ubuntu_cgi_tester exists[0m
+[0;32m✅ RESULT: ubuntu_cgi_tester found and executable[0m
+
+[0;35m============================================================[0m
+[1;37mMANDATORY PART - CODE INSPECTION[0m
+[0;35m============================================================[0m
+
+
+[0;34m🔍 1. I/O Multiplexing Analysis[0m
+[0;36m------------------------------------------------------------[0m
+[1;33m📋 TEST: Checking I/O Multiplexing function used[0m
+[0;32m✅ RESULT: Uses poll() for I/O multiplexing[0m
+[0;36m📝 EXPLANATION: poll() monitors multiple file descriptors simultaneously[0m
+[1;33m📋 TEST: Checking if poll()/select() is in main loop[0m
+[0;32m✅ RESULT: I/O multiplexing in main loop[0m
+[1;33m📋 TEST: Checking poll() monitors read AND write (POLLIN/POLLOUT)[0m
+[0;32m✅ RESULT: poll() monitors both read (POLLIN) and write (POLLOUT) events[0m
+[1;33m📋 TEST: Checking error handling for recv/send operations[0m
+[0;32m✅ RESULT: recv/send operations found in code[0m
+[1;33m📋 TEST: Checking for FORBIDDEN errno usage after recv/send[0m
+[1;33m⚠️  RESULT: Check errno usage manually - may be acceptable context[0m
+
+[0;35m============================================================[0m
+[1;37mMANDATORY PART - CONFIGURATION TESTING[0m
+[0;35m============================================================[0m
+
+
+[0;34m🔍 2. Server Configuration Tests[0m
+[0;36m------------------------------------------------------------[0m
+[1;33m📋 TEST: Starting server for configuration tests[0m
+[0;36m🚀 Starting webserv server...[0m
+[0;32m✅ Server started with PID: 4142207[0m
+[0;32m✅ RESULT: Server started successfully[0m
+[1;33m📋 TEST: Checking server is listening on port 8080[0m
+[0;32m✅ RESULT: Server responding on port 8080 (code: 200)[0m
+[1;33m📋 TEST: Testing GET request on /[0m
+[0;32m✅ RESULT: GET / returns 200 OK[0m
+[1;33m📋 TEST: Testing 404 error page[0m
+[0;31m❌ RESULT: 404 not returned (got: 200)[0m
+[1;33m📋 TEST: Testing method restrictions (POST on / should fail)[0m
+[0;32m✅ RESULT: POST on / returns 405 Method Not Allowed[0m
+
+[0;35m============================================================[0m
+[1;37mMANDATORY PART - HTTP METHODS[0m
+[0;35m============================================================[0m
+
+
+[0;34m🔍 3. HTTP Methods Testing[0m
+[0;36m------------------------------------------------------------[0m
+[1;33m📋 TEST: Testing GET on /directory/[0m
+[0;32m✅ RESULT: GET /directory/ returns 200[0m
+[1;33m📋 TEST: Testing autoindex on /directory/[0m
+[0;32m✅ RESULT: Directory listing or index file served[0m
+[1;33m📋 TEST: Testing GET on /uploads/ (autoindex)[0m
+[0;32m✅ RESULT: GET /uploads/ returns 200 (autoindex)[0m
+[1;33m📋 TEST: Testing PUT request on /put_test/[0m
+[1;33m⚠️  RESULT: PUT request returned 405[0m
+[1;33m📋 TEST: Testing DELETE request on /uploads/[0m
+[1;33m⚠️  RESULT: DELETE returned 404[0m
+[1;33m📋 TEST: Testing client body size limit on /post_body (100 bytes)[0m
+[1;33m⚠️  RESULT: Body limit test returned 405 (expected 413)[0m
+[1;33m📋 TEST: Testing server stability with unknown method[0m
+[0;32m✅ RESULT: Server survived unknown method (response: 405)[0m
+
+[0;35m============================================================[0m
+[1;37mMANDATORY PART - CGI FUNCTIONALITY[0m
+[0;35m============================================================[0m
+
+
+[0;34m🔍 4. CGI Testing (.bla files)[0m
+[0;36m------------------------------------------------------------[0m
+[1;33m📋 TEST: Testing CGI with POST to /directory/youpi.bla[0m
+[0;36m   CGI Response code: 500[0m
+[0;36m   CGI Response: <html><body><h1>500 Internal Server Error</h1></body></html>[0m
+[0;31m❌ RESULT: CGI not working properly (code: 500)[0m
+[1;33m📋 TEST: Testing server stability after CGI[0m
+[0;32m✅ RESULT: Server stable after CGI execution[0m
+[1;33m📋 TEST: Testing Python CGI in /cgi-bin/ (if configured)[0m
+./evaluation.sh: line 420: warning: command substitution: ignored null byte in input
+[0;32m✅ RESULT: Python CGI accessible[0m
+
+[0;35m============================================================[0m
+[1;37mSTRESS TESTING[0m
+[0;35m============================================================[0m
+
+
+[0;34m🔍 5. Performance and Stability[0m
+[0;36m------------------------------------------------------------[0m
+[1;33m📋 TEST: Testing concurrent connections[0m
+[0;36m   Sending 20 concurrent requests...[0m
+[0;32m✅ RESULT: Server handles concurrent connections[0m
+[1;33m📋 TEST: Testing rapid sequential requests[0m
+[0;36m   Successful: 30/30 (100%)[0m
+[0;32m✅ RESULT: Sequential requests: 100% availability[0m
+
+[0;35m============================================================[0m
+[1;37mUBUNTU TESTER[0m
+[0;35m============================================================[0m
+
+
+[0;34m🔍 6. Running ubuntu_tester[0m
+[0;36m------------------------------------------------------------[0m
+[1;33m📋 TEST: ubuntu_tester available[0m
+[1;33m   Note: ubuntu_tester requires manual interaction[0m
+[0;36m   To run manually:[0m
+[1;37m   ./ubuntu_tester configs/evaluation.conf http://localhost:8080[0m
+[1;33m⚠️  RESULT: ubuntu_tester requires manual execution[0m
+
+[0;35m============================================================[0m
+[1;37mEVALUATION COMPLETE[0m
+[0;35m============================================================[0m
+
+[0;36m🛑 Stopping webserv server (PID: 4142207)...[0m
+
+[1;37m📊 EVALUATION SUMMARY[0m
+[1;37m===========================================[0m
+[0;36mTotal Points: [1;37m21[0;36m / [1;37m28[0m
+[0;36mPercentage: [1;37m75%[0m
+[1;33m✅ RESULT: GOOD PROJECT[0m
+
+[0;36m📝 Log saved to: [1;37mevaluation_results.log[0m
+[0;36m📝 Server log: [1;37mserver_eval.log[0m
+
+[0;35m============================================================[0m
+[1;37mEVALUATION COMPLETE - Thu 18 Dec 2025 04:19:28 PM CET[0m
+[0;35m============================================================[0m
+
+[1;33m💡 NOTES FOR EVALUATOR:[0m
+[1;33m   - Run ubuntu_tester manually for full CGI tests:[0m
+[1;37m     ./ubuntu_tester configs/evaluation.conf http://localhost:8080[0m
+[1;33m   - Check server_eval.log for runtime info[0m
+[1;33m   - Verify code manually for edge cases[0m
+
+[0;36m🧹 Limpieza...[0m
+[0;32m✅ Limpieza completada[0m

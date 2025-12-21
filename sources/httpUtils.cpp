@@ -7,7 +7,7 @@ std::string trim(const std::string &str)
 	return (first == std::string::npos) ? "" : str.substr(first, last - first + 1);
 }
 
-bool caseInsensitiveCompare(const std::string &a, const std::string &b) // comparación case-insensitive
+bool caseInsensitiveCompare(const std::string &a, const std::string &b) 
 {
 	if (a.size() != b.size())
 		return false;
@@ -46,7 +46,7 @@ std::string getMimeType(const std::string &file_path)
 {
 	size_t dot_pos = file_path.find_last_of('.');
 	if (dot_pos == std::string::npos)
-		return "application/octet-stream"; // Default MIME type
+		return "application/octet-stream";
 
 	std::string extension = file_path.substr(dot_pos + 1);
 	if (extension == "html" || extension == "htm")
@@ -68,5 +68,5 @@ std::string getMimeType(const std::string &file_path)
 	else if (extension == "xml")
 		return "application/xml";
 	else
-		return "application/octet-stream"; // Default MIME type
+		return "application/octet-stream";
 }

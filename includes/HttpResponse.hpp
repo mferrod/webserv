@@ -8,9 +8,11 @@
 #include <sstream>
 #include <dirent.h>
 #include <unistd.h>
-#include "ServerConfig.hpp" //?? Not implemented yet.
+#include <time.h>
+#include "ServerConfig.hpp"
 #include "HttpRequest.hpp"
 #include "ServerSocket.hpp"
+#include "CGI.hpp"
 
 class HttpResponse
 {
@@ -43,4 +45,5 @@ class HttpResponse
 		void			redirection(std::string url);
 		void			readFile(const std::string &file_path);
 		void			makeAutoindex();
+		void			handleCGI();
 };

@@ -47,9 +47,8 @@ void ConfigParser::parseServer(std::ifstream &file) {
         }
         
         if (line.substr(0, 8) == "location") {
-            // Extraer el path de location /path {
             std::string locationLine = line;
-            locationLine.erase(0, 8); // Remove "location"
+            locationLine.erase(0, 8);
             trimWhitespace(locationLine);
             size_t openBrace = locationLine.find('{');
             if (openBrace != std::string::npos) {
@@ -59,8 +58,6 @@ void ConfigParser::parseServer(std::ifstream &file) {
             }
             continue;
         }
-        
-        // Parse directive
         size_t semicolon = line.find(';');
         if (semicolon == std::string::npos) {
             std::cerr << "Error: missing semicolon in: " << line << std::endl;
@@ -75,6 +72,18 @@ void ConfigParser::parseServer(std::ifstream &file) {
         std::getline(iss, value);
         trimWhitespace(value);
         
+        if (key == "listen") {
+            size_t colonPos = value.find(':');
+            if (colonPos != std::string::npos) {
+                std::string host = value.substr(0, colonPos);
+                std::string port = value.substr(colonPos + 1);
+                trimWhitespace(host);
+                trimWhitespace(port);
+                server.setDirective("listen", port);
+                server.setDirective("host", host);
+                continue;
+            }
+        }
         server.setDirective(key, value);
     }
 }
@@ -112,7 +121,7 @@ void ConfigParser::parseLocation(std::ifstream &file, ServerConfig &server, cons
 }
 
 bool ConfigParser::parseConfig(const std::string &filename) {
-    std::string file_path = "./configs/" + filename;
+    std::string file_path = filename;
     std::ifstream file(file_path.c_str());
     
     if (!file.is_open()) {
